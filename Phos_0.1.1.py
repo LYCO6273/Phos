@@ -73,15 +73,15 @@ def film_choose(film_type):
         d_r = 1.48 #红色感光层接受的散射光
         l_r = 0.95 #红色感光层接受的直射光
         x_r = 1.18 #红色感光层的响应系数
-        n_r = 0.15 #红色感光层的颗粒度
+        n_r = 0.18 #红色感光层的颗粒度
         d_g = 1.02 #绿色感光层接受的散射光
         l_g = 0.80 #绿色感光层接受的直射光
         x_g = 1.02 #绿色感光层的响应系数
-        n_g = 0.15 #绿色感光层的颗粒度
+        n_g = 0.18 #绿色感光层的颗粒度
         d_b = 1.02 #蓝色感光层接受的散射光
         l_b = 0.88 #蓝色感光层接受的直射光
         x_b = 0.78 #蓝色感光层的响应系数
-        n_b = 0.15 #蓝色感光层的颗粒度
+        n_b = 0.18 #蓝色感光层的颗粒度
         d_l = None #全色感光层接受的散射光
         l_l = None #全色感光层接受的直射光
         x_l = None #全色感光层的响应系数
@@ -123,7 +123,7 @@ def film_choose(film_type):
         d_l = 2.33 #全色感光层接受的散射光
         l_l = 0.85 #全色感光层接受的直射光
         x_l = 1.15 #全色感光层的响应系数
-        n_l = 0.17 #全色感光层的颗粒度
+        n_l = 0.20 #全色感光层的颗粒度
         gamma = 2.2
         A = 0.15 #肩部强度
         B = 0.50 #线性段强度
@@ -309,6 +309,46 @@ def grain(lux_r,lux_g,lux_b,lux_total,color_type,sens):
     return weighted_noise_r,weighted_noise_g,weighted_noise_b,weighted_noise_total
     #创建颗粒函数
 
+def reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
+    #定义reinhard算法，exp为曝光度，gam为伽马值
+    
+    if color_type == "color":
+
+        mapped = lux_r
+        #定义输入的图像
+        mapped = mapped * (mapped/ (1.0 + mapped))
+        #应用reinhard算法
+        mapped = np.power(mapped, 1.05/gamma)
+        result_r = np.clip(mapped,0,1)
+
+        mapped = lux_g
+        #定义输入的图像
+        mapped = mapped * (mapped/ (1.0 + mapped))
+        #应用reinhard算法
+        mapped = np.power(mapped, 1.05/gamma)
+        result_g = np.clip(mapped,0,1)
+
+        mapped = lux_b
+        #定义输入的图像
+        mapped = mapped * (mapped/ (1.0 + mapped))
+        #应用reinhard算法
+        mapped = np.power(mapped, 1.05/gamma)
+        result_b = np.clip(mapped,0,1)
+        result_total = None
+    else:
+        mapped = lux_total
+        #定义输入的图像
+        mapped = mapped * (mapped/ (1.0 + mapped))
+        #应用reinhard算法
+        mapped = np.power(mapped, 1.0/gamma)
+        result_total = np.clip(mapped,0,1)
+        result_r = None
+        result_g = None
+        result_b = None
+
+    return result_r,result_g,result_b,result_total
+    #创建reinhard函数
+
 def filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F):
     #fimlic映射
 
@@ -336,7 +376,7 @@ def filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F):
     
     return result_r,result_g,result_b,result_total
 
-def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r, d_g, l_g, x_g, n_g, d_b, l_b, x_b, n_b, d_l, l_l, x_l, n_l,grain_style,gamma,A,B,C,D,E,F):
+def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r, d_g, l_g, x_g, n_g, d_b, l_b, x_b, n_b, d_l, l_l, x_l, n_l,grain_style,gamma,A,B,C,D,E,F,Tone_style):
     #opt 光学扩散函数
 
     avrl = average(lux_total)
@@ -394,9 +434,12 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
             lux_b = bloom_effect_b * d_b + (lux_b**x_b) * l_b + weighted_noise_r *n_l + weighted_noise_g *n_l + weighted_noise_b *n_b
         
         #拼合光层
-        
-        (result_r,result_g,result_b,result_total) = filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F)
-        #应用flimic映射
+        if Tone_style == "filmic":
+            (result_r,result_g,result_b,result_total) = filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F)
+            #应用flimic映射
+        else:
+            (result_r,result_g,result_b,result_total) = reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma)
+            #应用映射
 
         combined_b = (result_b * 255).astype(np.uint8)
         combined_g = (result_g * 255).astype(np.uint8)
@@ -420,8 +463,12 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
         
         #拼合光层
         
-        (result_r,result_g,result_b,result_total) = filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F)
-        #应用flimic映射
+        if Tone_style == "filmic":
+            (result_r,result_g,result_b,result_total) = filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F)
+            #应用flimic映射
+        else:
+            (result_r,result_g,result_b,result_total) = reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma)
+            #应用reinhard映射
 
         film = (result_total * 255).astype(np.uint8)
 
@@ -430,7 +477,7 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
     #进行底片成像
     #准备暗房工具
 
-def process(uploaded_image,film_type,grain_style):
+def process(uploaded_image,film_type,grain_style,Tone_syle):
     
     start_time = time.time()
 
@@ -467,7 +514,7 @@ def process(uploaded_image,film_type,grain_style):
 
     (lux_r,lux_g,lux_b,lux_total) = luminance(image,color_type,r_r,r_g,r_b,g_r,g_g,g_b,b_r,b_g,b_b,t_r,t_g,t_b)
     #重建光线
-    film = opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r, d_g, l_g, x_g, n_g, d_b, l_b, x_b, n_b, d_l, l_l, x_l, n_l,grain_style,gamma,A,B,C,D,E,F)
+    film = opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r, d_g, l_g, x_g, n_g, d_b, l_b, x_b, n_b, d_l, l_l, x_l, n_l,grain_style,gamma,A,B,C,D,E,F,Tone_style)
     #冲洗底片
     
     timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -502,9 +549,9 @@ with st.sidebar:
         之，绿色最弱，成片灰阶细腻，颗粒柔和，
         画面锐利，对光影有很好的还原力。
 
-        FS200：高对比度黑白正片⌈光⌋，在开发初期作为原理
-        验证模型所使用，对蓝色较敏感，对红色较
-        不敏感，对比鲜明，颗粒适中。
+        FS200：高对比度黑白正片⌈光⌋，在开发初期
+        作为原理验证模型所使用，对蓝色较敏感，对
+        红色较不敏感，对比鲜明，颗粒适中。
         '''
     )
 
@@ -513,6 +560,15 @@ with st.sidebar:
         ["默认","柔和","较粗","不使用"],
         index = 0,
         help="选择胶片的颗粒度",
+    )
+    
+    Tone_style = st.selectbox(
+        "曲线映射：",
+        ["filmic","reinhard"],
+        index = 0,
+        help = """选择Tone mapping方式:
+        目前版本下Reinhard模型似乎表现出更好的动态范围，
+        filmic模型尚不够完善,但对肩部趾部有更符合目标的刻画""",
     )
 
     st.success(f"已选择胶片: {film_type}") 
@@ -525,7 +581,7 @@ with st.sidebar:
     )
 
 if uploaded_image is not None:
-    (film,process_time,output_path) = process(uploaded_image,film_type,grain_style)
+    (film,process_time,output_path) = process(uploaded_image,film_type,grain_style,Tone_style)
     st.image(film, width="stretch")
     st.success(f"底片显影好了，用时 {process_time:.2f}秒") 
     
