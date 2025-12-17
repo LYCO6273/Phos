@@ -591,15 +591,9 @@ if uploaded_image is not None:
     buf = io.BytesIO()
     film_pil.save(buf, format="JPEG", quality=100)
     byte_im = buf.getvalue()
-    
-    # 创建字节缓冲区
-    buf = io.BytesIO()
-    film_pil.save(buf, format="JPEG")
-    byte_im = buf.getvalue()
     st.download_button(
         label="📥 下载高清图像",
         data=byte_im,
         file_name=output_path,
         mime="image/jpeg"
     )
-    uploaded_image = None
