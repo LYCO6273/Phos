@@ -477,7 +477,7 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
     #进行底片成像
     #准备暗房工具
 
-def process(uploaded_image,film_type,grain_style,Tone_syle):
+def process(uploaded_image,film_type,grain_style,Tone_style):
     
     start_time = time.time()
 
