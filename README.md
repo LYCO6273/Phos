@@ -28,10 +28,29 @@ numpy                     2.2.6
 opencv-python             4.12.0.88
 streamlit                 1.51.0
 pillow                    12.0.0
+rawpy                     (optional, for RAW)
 
 兼容性尚不明确，如果运行出现问题，请以此处标明的依赖为准。
 
 Compatibility is not yet clear. If any issues occur during operation, please refer to the dependencies listed here.
+
+RAW 支持说明：
+- 解析相机 RAW（如 DNG/NEF/CR2/ARW 等）依赖 `rawpy`（底层需要 libraw；在部分平台可能需要编译环境或系统依赖），可选安装：`python -m pip install -r requirements-raw.txt`。
+- README 里标注的 Python 为 3.13，但 devcontainer 目前使用 Python 3.11；如遇安装/兼容问题请优先以 devcontainer 环境为准。
+
+# 运行方式
+
+## Streamlit（legacy UI）
+
+`streamlit run "Phos_0.1.1 copy.py"`
+
+## 前后端分离（FastAPI + 独立前端）
+
+后端依赖：`python -m pip install -r requirements-api.txt`
+
+启动后端：`uvicorn backend.main:app --host 0.0.0.0 --port 7000`
+
+打开前端：浏览器访问 `http://localhost:7000/`（静态前端在 `frontend/`，通过 FastAPI 静态托管；核心处理在 `phos/`）。
 
 # 许可证License
 

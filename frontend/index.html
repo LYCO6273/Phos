@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phos. | Digital Darkroom</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..800&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">Phos.</div>
+        <div class="brand-sub">DIGITAL_DARKROOM_VER_0.3.0</div>
+      </div>
+      <div class="topbar-actions">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          SYSTEM_READY
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- Left: Viewport (Image Preview & Comparison) -->
+      <section class="viewport">
+        <div class="viewport-header">
+          <span class="label">取景器</span>
+          <span class="meta" id="imageMeta">未加载图片</span>
+        </div>
+
+        <div class="stage-area" id="stageArea">
+          <!-- Upload Prompt -->
+          <div id="uploadPrompt" class="upload-prompt">
+            <div class="icon-upload"></div>
+            <p>打开图片</p>
+            <span class="sub-text">拖拽或点击上传</span>
+            <input id="files" type="file" multiple accept="image/*" />
+          </div>
+
+          <!-- Comparison Slider (Hidden by default) -->
+          <div id="compareContainer" class="compare-container hidden">
+            <div class="compare-image original" id="imgOriginal"></div>
+            <div class="compare-image processed" id="imgProcessed"></div>
+            <div class="compare-handle" id="compareHandle">
+              <div class="handle-line"></div>
+              <div class="handle-circle"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Controls (Film Shelf & Parameters) -->
+      <aside class="controls">
+        <!-- Film Selector Section -->
+        <div class="panel film-panel">
+          <div class="panel-header">
+            <span class="label">胶卷库</span>
+            <span class="value" id="currentFilm">NC200</span>
+          </div>
+          <div class="film-shelf">
+            <!-- Film Carousel Container -->
+            <div class="film-carousel" id="filmCarousel">
+              <div class="carousel-track" id="carouselTrack">
+                <!-- Film canisters will be injected here -->
+              </div>
+              <div class="carousel-nav">
+                <button class="nav-btn prev" id="prevBtn">◀</button>
+                <button class="nav-btn next" id="nextBtn">▶</button>
+              </div>
+            </div>
+          </div>
+          <div class="film-info">
+            <div class="info-row">
+              <span class="key">类型</span>
+              <span class="val" id="infoType">彩色负片</span>
+            </div>
+            <div class="info-row">
+              <span class="key">感光度</span>
+              <span class="val" id="infoIso">200</span>
+            </div>
+            <div class="info-row">
+              <span class="key">推荐场景</span>
+              <span class="val" id="infoRec">晴天 / 日常</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Parameters Section -->
+        <div class="panel params-panel">
+          <div class="panel-header">
+            <span class="label">冲洗参数</span>
+          </div>
+
+          <div class="control-group">
+            <div class="control-head">
+              <label>颗粒强度</label>
+              <span class="val" id="grainStrengthVal">1.00</span>
+            </div>
+            <input id="grainStrength" type="range" min="0" max="2" value="1" step="0.05" class="slider" />
+          </div>
+
+          <div class="action-group">
+            <button id="btnProcess" class="btn primary">
+              冲洗胶卷
+              <div class="btn-beam-border"></div>
+            </button>
+            <button id="btnDownload" class="btn secondary" disabled>
+              导出照片
+              <div class="btn-beam-border"></div>
+            </button>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+
+</html>
