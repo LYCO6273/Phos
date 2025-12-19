@@ -59,6 +59,11 @@
             </div>
           </div>
 
+          <button id="btnCompareToggle" class="compare-toggle hidden" type="button" aria-pressed="false"
+            title="原图/胶片对比">
+            对比
+          </button>
+
           <!-- Processing Progress (Hidden by default) -->
           <div id="progressWrap" class="progress-wrap hidden" aria-hidden="true">
             <div class="progress-label">
@@ -67,6 +72,8 @@
             </div>
             <div class="progress-blocks" id="progressBlocks"></div>
           </div>
+
+          <div id="hintToast" class="hint-toast hidden" role="status" aria-live="polite"></div>
         </div>
       </section>
 

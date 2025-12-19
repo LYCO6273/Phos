@@ -13,8 +13,15 @@ const state = {
   job: {
     id: null,
     controller: null,
+    warningsShownFor: null,
+  },
+  compare: {
+    enabled: false,
+    percent: 100,
   },
 };
+
+const COMPARE_HANDLE_RADIUS_PX = 16;
 
 // --- Utils ---
 function $(id) {
@@ -79,6 +86,7 @@ function filenameFromContentDisposition(contentDisposition) {
 function resetSelection() {
   state.files = [];
   cancelCurrentJob();
+  setHint("");
   if (state.processedBlobUrl) URL.revokeObjectURL(state.processedBlobUrl);
   if (state.originalBlobUrl) URL.revokeObjectURL(state.originalBlobUrl);
   state.processedBlobUrl = null;
@@ -94,6 +102,10 @@ function resetSelection() {
   compare.classList.remove("visible");
   prompt.style.display = "";
   prompt.style.opacity = "1";
+
+  const compareBtn = $("btnCompareToggle");
+  if (compareBtn) compareBtn.classList.add("hidden");
+  setCompareEnabled(false);
 
   const fileInput = $("files");
   if (fileInput) fileInput.value = "";
@@ -163,12 +175,61 @@ function finishProgress() {
   setTimeout(() => stopProgress(), 450);
 }
 
+function setComparePercent(percent) {
+  const container = $("compareContainer");
+  const handle = $("compareHandle");
+  const processedImg = $("imgProcessed");
+  if (!container || !handle || !processedImg) return;
+
+  const rect = container.getBoundingClientRect();
+  const width = rect.width || 1;
+  const inner = Math.max(1, width - COMPARE_HANDLE_RADIUS_PX * 2);
+  const p = Math.max(0, Math.min(100, Number(percent) || 0));
+  const x = COMPARE_HANDLE_RADIUS_PX + (p / 100) * inner;
+
+  handle.style.left = `${x}px`;
+  processedImg.style.clipPath = `inset(0 ${100 - p}% 0 0)`;
+  state.compare.percent = p;
+}
+
+function setCompareEnabled(enabled) {
+  const btn = $("btnCompareToggle");
+  const handle = $("compareHandle");
+  if (!handle || !btn) return;
+
+  const on = Boolean(enabled);
+  state.compare.enabled = on;
+  btn.setAttribute("aria-pressed", on ? "true" : "false");
+
+  if (on) {
+    handle.style.display = "";
+    requestAnimationFrame(() => setComparePercent(100));
+  } else {
+    handle.style.display = "none";
+    setComparePercent(100);
+  }
+}
+
 function cancelCurrentJob() {
   if (state.job.controller) {
     try { state.job.controller.abort(); } catch {}
   }
   state.job.controller = null;
   state.job.id = null;
+  state.job.warningsShownFor = null;
+}
+
+function setHint(text) {
+  const el = $("hintToast");
+  if (!el) return;
+  const msg = String(text || "").trim();
+  if (!msg) {
+    el.classList.add("hidden");
+    el.textContent = "";
+    return;
+  }
+  el.textContent = msg;
+  el.classList.remove("hidden");
 }
 
 function sleep(ms) {
@@ -439,14 +500,13 @@ function initComparisonSlider() {
   const processedImg = $("imgProcessed");
   let isDragging = false;
 
-  const updateSlider = (clientX) => {
+  const clientXToPercent = (clientX) => {
     const rect = container.getBoundingClientRect();
     let x = clientX - rect.left;
-    x = Math.max(0, Math.min(x, rect.width));
-    const percent = (x / rect.width) * 100;
-
-    handle.style.left = `${percent}%`;
-    processedImg.style.clipPath = `inset(0 0 0 ${percent}%)`;
+    const width = rect.width || 1;
+    x = Math.max(COMPARE_HANDLE_RADIUS_PX, Math.min(x, width - COMPARE_HANDLE_RADIUS_PX));
+    const inner = Math.max(1, width - COMPARE_HANDLE_RADIUS_PX * 2);
+    return ((x - COMPARE_HANDLE_RADIUS_PX) / inner) * 100;
   };
 
   handle.addEventListener("mousedown", (e) => {
@@ -458,7 +518,7 @@ function initComparisonSlider() {
 
   window.addEventListener("mousemove", (e) => {
     if (!isDragging) return;
-    updateSlider(e.clientX);
+    setComparePercent(clientXToPercent(e.clientX));
   });
 
   // Touch support
@@ -468,7 +528,7 @@ function initComparisonSlider() {
   window.addEventListener("touchend", () => isDragging = false);
   window.addEventListener("touchmove", (e) => {
     if (!isDragging) return;
-    updateSlider(e.touches[0].clientX);
+    setComparePercent(clientXToPercent(e.touches[0].clientX));
   });
 }
 
@@ -503,8 +563,15 @@ async function processImage() {
       const progress = Number(job?.progress ?? 0);
       const message = String(job?.message ?? "");
       const status = String(job?.status ?? "");
+      const warnings = Array.isArray(job?.warnings) ? job.warnings : [];
+
       if (Number.isFinite(progress)) setProgress(progress);
       if (message) setStatus(message);
+
+      if (warnings.length && state.job.warningsShownFor !== jobId) {
+        state.job.warningsShownFor = jobId;
+        setHint(warnings.join("  "));
+      }
 
       if (status === "done") break;
       if (status === "error") throw new Error(job?.error || job?.message || "冲洗失败");
@@ -521,6 +588,10 @@ async function processImage() {
 
     $("imgOriginal").style.backgroundImage = `url(${state.originalBlobUrl})`;
     $("imgProcessed").style.backgroundImage = `url(${state.processedBlobUrl})`;
+
+    const compareBtn = $("btnCompareToggle");
+    if (compareBtn) compareBtn.classList.remove("hidden");
+    setCompareEnabled(false);
 
     // Transition
     const prompt = $("uploadPrompt");
@@ -626,9 +697,11 @@ function bindUI() {
 
   $("btnProcess").addEventListener("click", processImage);
   $("btnReset").addEventListener("click", resetSelection);
+  $("btnCompareToggle")?.addEventListener("click", () => setCompareEnabled(!state.compare.enabled));
 
   initProgressUI();
   initComparisonSlider();
+  setCompareEnabled(false);
   initDragDrop();
 }
 

@@ -47,11 +47,29 @@ def _job_update(job_id: str, **updates: object) -> None:
         job["updated_at"] = time.time()
 
 
+def _job_add_warning(job_id: str, warning: str) -> None:
+    with _jobs_lock:
+        job = _jobs.get(job_id)
+        if job is None:
+            return
+        warnings = job.get("warnings")
+        if not isinstance(warnings, list):
+            warnings = []
+            job["warnings"] = warnings
+        msg = str(warning).strip()
+        if msg and msg not in warnings:
+            warnings.append(msg)
+        job["updated_at"] = time.time()
+
+
 async def _run_job(job_id: str, *, file_bytes: bytes, filename: str, options: ProcessingOptions) -> None:
     _job_update(job_id, status="processing", progress=0.0, message="开始冲洗…")
 
     def progress_cb(pct: float, message: str) -> None:
         _job_update(job_id, progress=float(pct), message=str(message))
+
+    def warning_cb(message: str) -> None:
+        _job_add_warning(job_id, str(message))
 
     try:
         result = await asyncio.to_thread(
@@ -60,6 +78,7 @@ async def _run_job(job_id: str, *, file_bytes: bytes, filename: str, options: Pr
             filename,
             options,
             progress_cb,
+            warning_cb,
         )
     except Exception as exc:
         _job_update(job_id, status="error", message="冲洗失败", error=str(exc), progress=0.0)
@@ -187,6 +206,7 @@ async def create_job(
             "progress": 0.0,
             "message": "等待开始",
             "error": None,
+            "warnings": [],
             "output_filename": None,
             "jpeg_bytes": None,
             "created_at": time.time(),
@@ -209,6 +229,7 @@ def get_job(job_id: str):
             "progress": job.get("progress", 0.0),
             "message": job.get("message"),
             "error": job.get("error"),
+            "warnings": job.get("warnings") or [],
             "output_filename": job.get("output_filename"),
         }
 

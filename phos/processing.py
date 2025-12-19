@@ -10,7 +10,12 @@ from dataclasses import dataclass
 from typing import Callable
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
+
+try:
+    from PIL import ImageCms
+except Exception:
+    ImageCms = None
 
 from phos.grain import grain
 from phos.presets import FILM_TYPES, film_choose, resolve_film_type
@@ -68,10 +73,51 @@ class ProcessResult:
 
 
 ProgressCallback = Callable[[float, str], None]
+WarningCallback = Callable[[str], None]
+
+
+_SRGB_PROFILE = None
+
+
+def _srgb_profile():
+    global _SRGB_PROFILE
+    if ImageCms is None:
+        return None
+    if _SRGB_PROFILE is None:
+        try:
+            _SRGB_PROFILE = ImageCms.createProfile("sRGB")
+        except Exception:
+            _SRGB_PROFILE = None
+    return _SRGB_PROFILE
 
 
 def _ext_lower(filename: str) -> str:
     return os.path.splitext(filename)[1].lstrip(".").lower()
+
+
+def _decode_with_pillow_srgb(file_bytes: bytes) -> np.ndarray:
+    if cv2 is None:
+        raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能处理图像。")
+
+    pil = Image.open(io.BytesIO(file_bytes))
+    pil = ImageOps.exif_transpose(pil)
+
+    icc = pil.info.get("icc_profile")
+    if icc and ImageCms is not None:
+        try:
+            src_profile = ImageCms.ImageCmsProfile(io.BytesIO(icc))
+            dst_profile = _srgb_profile()
+            if dst_profile is not None:
+                pil = ImageCms.profileToProfile(pil, src_profile, dst_profile, outputMode="RGB")
+            else:
+                pil = pil.convert("RGB")
+        except Exception:
+            pil = pil.convert("RGB")
+    else:
+        pil = pil.convert("RGB")
+
+    rgb = np.asarray(pil, dtype=np.uint8)
+    return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
 
 
 def decode_bytes_to_bgr(file_bytes: bytes, filename: str) -> np.ndarray:
@@ -92,14 +138,18 @@ def decode_bytes_to_bgr(file_bytes: bytes, filename: str) -> np.ndarray:
                 )
         return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
 
-    if cv2 is None:
-        raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能处理图像。")
-    file_array = np.frombuffer(file_bytes, dtype=np.uint8)
-    bgr = cv2.imdecode(file_array, cv2.IMREAD_COLOR)
-    if bgr is None:
-        pil = Image.open(io.BytesIO(file_bytes)).convert("RGB")
-        bgr = cv2.cvtColor(np.asarray(pil), cv2.COLOR_RGB2BGR)
-    return bgr
+    # macOS Photos/Preview often embeds Display P3 ICC; OpenCV ignores ICC and may look darker.
+    # Decode with Pillow first to apply EXIF orientation + ICC -> sRGB conversion.
+    try:
+        return _decode_with_pillow_srgb(file_bytes)
+    except Exception:
+        if cv2 is None:
+            raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能处理图像。")
+        file_array = np.frombuffer(file_bytes, dtype=np.uint8)
+        bgr = cv2.imdecode(file_array, cv2.IMREAD_COLOR)
+        if bgr is None:
+            raise
+        return bgr
 
 
 def encode_jpeg_bytes(image_rgb: np.ndarray, quality: int = 95) -> bytes:
@@ -349,6 +399,7 @@ def process_bytes(
     filename: str,
     options: ProcessingOptions,
     progress_cb: ProgressCallback | None = None,
+    warning_cb: WarningCallback | None = None,
 ) -> ProcessResult:
     film_type = resolve_film_type(options.film_type)
     if film_type not in FILM_TYPES:
@@ -417,6 +468,22 @@ def process_bytes(
         n_r = n_g = n_b = n_l = 0.0
 
     image_bgr = standardize(image_bgr)
+    min_dim = int(min(image_bgr.shape[0], image_bgr.shape[1]))
+    if options.grain_enabled:
+        if min_dim < 1200 and warning_cb is not None:
+            warning_cb(f"图片分辨率偏小（短边 {min_dim}px），颗粒效果可能偏粗糙；已自动降低颗粒强度/粗细。")
+
+        # Auto-scale grain for small images to avoid overly coarse/ugly grain.
+        # Reference is 3000px (same as standardize min_size).
+        grain_scale = float(np.clip(min_dim / 3000.0, 0.35, 1.0))
+        n_r *= grain_scale
+        n_g *= grain_scale
+        n_b *= grain_scale
+        n_l *= grain_scale
+        grain_size = float(options.grain_size) * grain_scale
+    else:
+        grain_size = float(options.grain_size)
+
     _progress(26.0, "计算亮度…")
     lux_r, lux_g, lux_b, lux_total = luminance(image_bgr, color_type, r_r, r_g, r_b, g_r, g_g, g_b, b_r, b_g, b_b, t_r, t_g, t_b)
 
@@ -448,7 +515,7 @@ def process_bytes(
         x_l,
         n_l,
         bool(options.grain_enabled),
-        float(options.grain_size),
+        float(grain_size),
         int(grain_seed),
         gamma,
         A,
