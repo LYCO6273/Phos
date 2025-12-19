@@ -45,7 +45,8 @@
             <div class="icon-upload"></div>
             <p>打开图片</p>
             <span class="sub-text">拖拽或点击上传</span>
-            <input id="files" type="file" multiple accept="image/*" />
+            <input id="files" type="file" multiple
+              accept="image/*,.tif,.tiff,.dng,.nef,.nrw,.cr2,.cr3,.arw,.raf,.rw2,.orf,.srw,.pef,.erf,.kdc,.mrw,.rwl,.mos,.dcr,.3fr,.raw" />
           </div>
 
           <!-- Comparison Slider (Hidden by default) -->
@@ -117,6 +118,10 @@
             </button>
             <button id="btnDownload" class="btn secondary" disabled>
               导出照片
+              <div class="btn-beam-border"></div>
+            </button>
+            <button id="btnReset" class="btn secondary" disabled>
+              更换照片
               <div class="btn-beam-border"></div>
             </button>
           </div>

@@ -30,12 +30,12 @@ def presets():
 @app.post("/api/process")
 async def process_one(
     file: Annotated[UploadFile, File(...)],
-    film_type: Annotated[str, Form("FUJI200")],
-    tone_style: Annotated[str, Form("filmic")],
-    grain_enabled: Annotated[bool, Form(True)],
-    grain_strength: Annotated[float, Form(1.0)],
-    grain_size: Annotated[float, Form(1.0)],
-    jpeg_quality: Annotated[int, Form(95)],
+    film_type: Annotated[str, Form()] = "FUJI200",
+    tone_style: Annotated[str, Form()] = "filmic",
+    grain_enabled: Annotated[bool, Form()] = True,
+    grain_strength: Annotated[float, Form()] = 1.0,
+    grain_size: Annotated[float, Form()] = 1.0,
+    jpeg_quality: Annotated[int, Form()] = 95,
 ):
     try:
         file_bytes = await file.read()
@@ -64,12 +64,12 @@ async def process_one(
 @app.post("/api/batch")
 async def process_batch(
     files: Annotated[list[UploadFile], File(...)],
-    film_type: Annotated[str, Form("FUJI200")],
-    tone_style: Annotated[str, Form("filmic")],
-    grain_enabled: Annotated[bool, Form(True)],
-    grain_strength: Annotated[float, Form(1.0)],
-    grain_size: Annotated[float, Form(1.0)],
-    jpeg_quality: Annotated[int, Form(95)],
+    film_type: Annotated[str, Form()] = "FUJI200",
+    tone_style: Annotated[str, Form()] = "filmic",
+    grain_enabled: Annotated[bool, Form()] = True,
+    grain_strength: Annotated[float, Form()] = 1.0,
+    grain_size: Annotated[float, Form()] = 1.0,
+    jpeg_quality: Annotated[int, Form()] = 95,
 ):
     outputs: list[tuple[str, bytes]] = []
     options = ProcessingOptions(

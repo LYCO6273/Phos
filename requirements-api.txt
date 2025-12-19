@@ -1,3 +1,4 @@
+-r requirements-core.txt
 fastapi
 uvicorn
 python-multipart

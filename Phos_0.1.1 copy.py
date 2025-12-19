@@ -59,10 +59,11 @@ with st.sidebar:
     st.text("")
     st.text("🎞️ 胶片设置")
 
+    default_film_index = FILM_TYPES.index("FUJI200") if "FUJI200" in FILM_TYPES else 0
     film_type = st.selectbox(
         "请选择胶片:",
         FILM_TYPES,
-        index=0,
+        index=default_film_index,
         help="\n\n".join(FILM_DESCRIPTIONS.get(t, t) for t in FILM_TYPES),
     )
 
@@ -134,4 +135,3 @@ if run and uploaded_files:
             file_name=zip_name,
             mime="application/zip",
         )
-

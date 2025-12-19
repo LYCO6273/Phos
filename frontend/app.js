@@ -19,6 +19,15 @@ function setStatus(text, isError = false) {
   }
 }
 
+function formatBytesDecimal(bytes) {
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n < 0) return "";
+  if (n < 1000) return `${n} B`;
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1)} KB`;
+  if (n < 1_000_000_000) return `${(n / 1_000_000).toFixed(2)} MB`;
+  return `${(n / 1_000_000_000).toFixed(2)} GB`;
+}
+
 function fmt(n) {
   const v = Number(n);
   if (Number.isNaN(v)) return "";
@@ -33,6 +42,55 @@ function hexToRgba(hex, alpha = 0.3) {
   const b = parseInt(c.slice(4, 6), 16);
   if ([r, g, b].some(Number.isNaN)) return `rgba(255, 193, 7, ${alpha})`;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function stripExtension(filename) {
+  const name = String(filename || "image");
+  const idx = name.lastIndexOf(".");
+  return idx > 0 ? name.slice(0, idx) : name;
+}
+
+function filenameFromContentDisposition(contentDisposition) {
+  const cd = String(contentDisposition || "");
+  // RFC 5987: filename*=UTF-8''...
+  const star = cd.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+  if (star && star[1]) {
+    try {
+      return decodeURIComponent(star[1].trim());
+    } catch {
+      return star[1].trim();
+    }
+  }
+
+  const plain = cd.match(/filename\s*=\s*\"?([^\";]+)\"?/i);
+  if (plain && plain[1]) return plain[1].trim();
+  return "";
+}
+
+function resetSelection() {
+  state.files = [];
+  if (state.processedBlobUrl) URL.revokeObjectURL(state.processedBlobUrl);
+  if (state.originalBlobUrl) URL.revokeObjectURL(state.originalBlobUrl);
+  state.processedBlobUrl = null;
+  state.originalBlobUrl = null;
+
+  $("imageMeta").textContent = "未加载图片";
+  const promptText = document.querySelector(".upload-prompt p");
+  if (promptText) promptText.textContent = "打开图片";
+
+  const prompt = $("uploadPrompt");
+  const compare = $("compareContainer");
+  compare.classList.add("hidden");
+  compare.classList.remove("visible");
+  prompt.style.display = "";
+  prompt.style.opacity = "1";
+
+  const fileInput = $("files");
+  if (fileInput) fileInput.value = "";
+
+  $("btnDownload").disabled = true;
+  $("btnReset").disabled = true;
+  setStatus("请选择图片");
 }
 
 // --- API ---
@@ -290,6 +348,7 @@ async function processImage() {
   setStatus("正在冲洗...");
 
   $("btnProcess").disabled = true;
+  $("btnReset").disabled = true;
 
   // Add loading state to button
   const originalBtnText = $("btnProcess").textContent;
@@ -302,7 +361,19 @@ async function processImage() {
     Object.entries(options).forEach(([k, v]) => fd.append(k, String(v)));
 
     const res = await fetch("/api/process", { method: "POST", body: fd });
-    if (!res.ok) throw new Error("冲洗失败");
+    if (!res.ok) {
+      let detail = `冲洗失败 (${res.status})`;
+      try {
+        const data = await res.json();
+        if (data && typeof data.detail !== "undefined") detail = String(data.detail);
+      } catch {
+        try {
+          const text = await res.text();
+          if (text) detail = text;
+        } catch {}
+      }
+      throw new Error(detail);
+    }
 
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -324,13 +395,15 @@ async function processImage() {
       compare.classList.add("visible");
     }, 300);
 
-    $("imageMeta").textContent = `${file.name} | ${(file.size / 1024 / 1024).toFixed(2)}MB`;
+    $("imageMeta").textContent = `${file.name} | ${formatBytesDecimal(file.size)}`;
 
     $("btnDownload").disabled = false;
+    $("btnReset").disabled = false;
     $("btnDownload").onclick = () => {
       const a = document.createElement("a");
       a.href = url;
-      a.download = `phos_${state.currentFilm}_${file.name}`;
+      const suggested = filenameFromContentDisposition(res.headers.get("content-disposition"));
+      a.download = suggested || `phos_${state.currentFilm}_${stripExtension(file.name)}.jpg`;
       a.click();
     };
 
@@ -381,9 +454,14 @@ function initDragDrop() {
 
 function handleFiles(files) {
   if (files.length) {
+    // If we already have a processed view, switch back to upload state first.
+    if (state.processedBlobUrl || state.originalBlobUrl) {
+      resetSelection();
+    }
     state.files = Array.from(files);
     setStatus("胶卷已加载");
-    $("imageMeta").textContent = "胶卷就绪，准备冲洗";
+    $("imageMeta").textContent = `${state.files[0].name} | ${formatBytesDecimal(state.files[0].size)}`;
+    $("btnReset").disabled = false;
 
     // Show preview of original immediately?
     // User wants "Slider Comparison" after processing.
@@ -402,6 +480,7 @@ function bindUI() {
   });
 
   $("btnProcess").addEventListener("click", processImage);
+  $("btnReset").addEventListener("click", resetSelection);
 
   initComparisonSlider();
   initDragDrop();

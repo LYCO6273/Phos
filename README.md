@@ -48,9 +48,9 @@ RAW 支持说明：
 
 后端依赖：`python -m pip install -r requirements-api.txt`
 
-启动后端：`uvicorn backend.main:app --host 0.0.0.0 --port 7000`
+启动后端：`uvicorn backend.main:app --host 0.0.0.0 --port 8086`
 
-打开前端：浏览器访问 `http://localhost:7000/`（静态前端在 `frontend/`，通过 FastAPI 静态托管；核心处理在 `phos/`）。
+打开前端：浏览器访问 `http://localhost:8086/`（静态前端在 `frontend/`，通过 FastAPI 静态托管；核心处理在 `phos/`）。
 
 # 许可证License
 

@@ -117,6 +117,8 @@ def standardize(image_bgr: np.ndarray, min_size: int = 3000) -> np.ndarray:
     if cv2 is None:
         raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能处理图像。")
     height, width = image_bgr.shape[:2]
+    if min(height, width) <= int(min_size):
+        return image_bgr
     if height < width:
         scale_factor = min_size / height
         new_height = min_size
