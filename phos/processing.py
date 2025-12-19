@@ -8,12 +8,16 @@ import zipfile
 import zlib
 from dataclasses import dataclass
 
-import cv2
 import numpy as np
 from PIL import Image
 
 from phos.grain import grain
-from phos.presets import FILM_TYPES, film_choose
+from phos.presets import FILM_TYPES, film_choose, resolve_film_type
+
+try:
+    import cv2  # type: ignore
+except Exception:
+    cv2 = None
 
 try:
     import rawpy  # type: ignore
@@ -46,7 +50,7 @@ RAW_EXTENSIONS = {
 
 @dataclass(frozen=True)
 class ProcessingOptions:
-    film_type: str = "NC200"
+    film_type: str = "FUJI200"
     tone_style: str = "filmic"
     grain_enabled: bool = True
     grain_strength: float = 1.0
@@ -71,6 +75,8 @@ def decode_bytes_to_bgr(file_bytes: bytes, filename: str) -> np.ndarray:
     if file_ext in RAW_EXTENSIONS:
         if rawpy is None:
             raise RuntimeError("rawpy 未安装：请先安装 rawpy/libraw 才能解析 RAW。")
+        if cv2 is None:
+            raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能处理图像。")
         with tempfile.NamedTemporaryFile(suffix=f".{file_ext}") as temp_file:
             temp_file.write(file_bytes)
             temp_file.flush()
@@ -82,6 +88,8 @@ def decode_bytes_to_bgr(file_bytes: bytes, filename: str) -> np.ndarray:
                 )
         return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
 
+    if cv2 is None:
+        raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能处理图像。")
     file_array = np.frombuffer(file_bytes, dtype=np.uint8)
     bgr = cv2.imdecode(file_array, cv2.IMREAD_COLOR)
     if bgr is None:
@@ -106,6 +114,8 @@ def make_zip_bytes(named_files: list[tuple[str, bytes]]) -> bytes:
 
 
 def standardize(image_bgr: np.ndarray, min_size: int = 3000) -> np.ndarray:
+    if cv2 is None:
+        raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能处理图像。")
     height, width = image_bgr.shape[:2]
     if height < width:
         scale_factor = min_size / height
@@ -123,6 +133,8 @@ def standardize(image_bgr: np.ndarray, min_size: int = 3000) -> np.ndarray:
 
 
 def luminance(image_bgr, color_type, r_r, r_g, r_b, g_r, g_g, g_b, b_r, b_g, b_b, t_r, t_g, t_b):
+    if cv2 is None:
+        raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能处理图像。")
     b, g, r = cv2.split(image_bgr)
     b_float = b.astype(np.float32) / 255.0
     g_float = g.astype(np.float32) / 255.0
@@ -236,6 +248,8 @@ def opt(
     F,
     tone_style: str,
 ):
+    if cv2 is None:
+        raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能处理图像。")
     avrl = average(lux_total)
     sens = (1.0 - avrl) * 0.75 + 0.10
     sens = np.clip(sens, 0.10, 0.7)
@@ -306,7 +320,8 @@ def opt(
 
 
 def process_bytes(file_bytes: bytes, filename: str, options: ProcessingOptions) -> ProcessResult:
-    if options.film_type not in FILM_TYPES:
+    film_type = resolve_film_type(options.film_type)
+    if film_type not in FILM_TYPES:
         raise ValueError(f"Unknown film_type: {options.film_type}")
 
     start_time = time.time()
@@ -352,7 +367,7 @@ def process_bytes(file_bytes: bytes, filename: str, options: ProcessingOptions) 
         D,
         E,
         F,
-    ) = film_choose(options.film_type)
+    ) = film_choose(film_type)
 
     if options.grain_enabled:
         strength = float(options.grain_strength)
@@ -406,7 +421,7 @@ def process_bytes(file_bytes: bytes, filename: str, options: ProcessingOptions) 
 
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     input_stem = os.path.splitext(os.path.basename(filename or "image"))[0]
-    output_filename = f"{input_stem}_phos_{options.film_type}_{timestamp}.jpg"
+    output_filename = f"{input_stem}_phos_{film_type}_{timestamp}.jpg"
     process_time_s = time.time() - start_time
 
     return ProcessResult(
@@ -421,4 +436,3 @@ def process_uploaded_file(uploaded_file, options: ProcessingOptions) -> ProcessR
     file_bytes = uploaded_file.getvalue() if hasattr(uploaded_file, "getvalue") else uploaded_file.read()
     filename = getattr(uploaded_file, "name", "image")
     return process_bytes(file_bytes=file_bytes, filename=filename, options=options)
-

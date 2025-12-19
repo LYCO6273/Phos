@@ -7,7 +7,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from phos.presets import FILM_DESCRIPTIONS, FILM_TYPES
+from phos.presets import FILM_DESCRIPTIONS, FILM_META, FILM_TYPES
 from phos.processing import ProcessingOptions, make_zip_bytes, process_bytes
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +21,8 @@ def presets():
     return {
         "film_types": FILM_TYPES,
         "film_descriptions": FILM_DESCRIPTIONS,
+        "film_meta": {code: meta.as_dict() for code, meta in FILM_META.items()},
+        "default_film_type": "FUJI200",
         "tone_styles": ["filmic", "reinhard"],
     }
 
@@ -28,7 +30,7 @@ def presets():
 @app.post("/api/process")
 async def process_one(
     file: Annotated[UploadFile, File(...)],
-    film_type: Annotated[str, Form("NC200")],
+    film_type: Annotated[str, Form("FUJI200")],
     tone_style: Annotated[str, Form("filmic")],
     grain_enabled: Annotated[bool, Form(True)],
     grain_strength: Annotated[float, Form(1.0)],
@@ -62,7 +64,7 @@ async def process_one(
 @app.post("/api/batch")
 async def process_batch(
     files: Annotated[list[UploadFile], File(...)],
-    film_type: Annotated[str, Form("NC200")],
+    film_type: Annotated[str, Form("FUJI200")],
     tone_style: Annotated[str, Form("filmic")],
     grain_enabled: Annotated[bool, Form(True)],
     grain_strength: Annotated[float, Form(1.0)],
@@ -106,4 +108,3 @@ def index():
 
 if os.path.isdir(FRONTEND_DIR):
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
-

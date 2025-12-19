@@ -2,7 +2,7 @@ const state = {
   // grainEnabled: true, // Removed
   files: [],
   presets: null,
-  currentFilm: "NC200",
+  currentFilm: "FUJI200",
   processedBlobUrl: null,
   originalBlobUrl: null,
 };
@@ -25,89 +25,40 @@ function fmt(n) {
   return v.toFixed(2).replace(/\.00$/, "");
 }
 
+function hexToRgba(hex, alpha = 0.3) {
+  const c = String(hex || "").replace("#", "").trim();
+  if (c.length !== 6) return `rgba(255, 193, 7, ${alpha})`;
+  const r = parseInt(c.slice(0, 2), 16);
+  const g = parseInt(c.slice(2, 4), 16);
+  const b = parseInt(c.slice(4, 6), 16);
+  if ([r, g, b].some(Number.isNaN)) return `rgba(255, 193, 7, ${alpha})`;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 // --- API ---
 async function loadPresets() {
-  // Rich mock data
+  const res = await fetch("/api/presets");
+  if (!res.ok) throw new Error("无法加载胶卷预设");
+  const data = await res.json();
   return {
-    film_types: ["GOLD200", "PORTRA400", "FUJI200", "ILFORD5", "CINE800", "EKTAR100", "TRI_X400", "NATURA1600"],
-    meta: {
-      "GOLD200": {
-        name: "Kodak Gold 200",
-        type: "彩色负片",
-        iso: 200,
-        weather: "晴天 / 黄金时刻",
-        scene: "街头, 旅行, 怀旧",
-        desc: "经典的暖色调，带有复古的金色光泽。记忆的完美载体。",
-        brandColor: "#FFB800"
-      },
-      "PORTRA400": {
-        name: "Kodak Portra 400",
-        type: "专业彩色负片",
-        iso: 400,
-        weather: "阴天 / 室内",
-        scene: "人像, 婚礼, 肤色",
-        desc: "世界上颗粒最细腻的胶卷。卓越的肤色还原和宽容度。",
-        brandColor: "#E6C200"
-      },
-      "FUJI200": {
-        name: "Fujifilm C200",
-        type: "彩色负片",
-        iso: 200,
-        weather: "日光 / 自然",
-        scene: "风景, 绿植, 城市",
-        desc: "色调偏冷，绿色和洋红色表现鲜艳。清晰锐利。",
-        brandColor: "#48A14D"
-      },
-      "ILFORD5": {
-        name: "Ilford HP5 Plus",
-        type: "黑白负片",
-        iso: 400,
-        weather: "全天候 / 暗光",
-        scene: "纪实, 街头, 艺术",
-        desc: "颗粒细腻，边缘对比度好。新闻摄影师的首选。",
-        brandColor: "#FFFFFF"
-      },
-      "CINE800": {
-        name: "CineStill 800T",
-        type: "电影灯光片",
-        iso: 800,
-        weather: "夜晚 / 人造光",
-        scene: "夜景, 霓虹灯, 电影感",
-        desc: "用于静态摄影的电影胶卷。以灯光周围的红色光晕闻名。",
-        brandColor: "#D12E2E"
-      },
-      "EKTAR100": {
-        name: "Kodak Ektar 100",
-        type: "专业彩色负片",
-        iso: 100,
-        weather: "晴天 / 户外",
-        scene: "风景, 建筑, 产品",
-        desc: "世界上颗粒最细的彩色负片。色彩极其鲜艳，反差高。",
-        brandColor: "#0095DA"
-      },
-      "TRI_X400": {
-        name: "Kodak Tri-X 400",
-        type: "黑白负片",
-        iso: 400,
-        weather: "全天候 / 街头",
-        scene: "新闻, 纪实, 人文",
-        desc: "经典的黑白胶卷，颗粒感明显，对比度强烈，充满戏剧性。",
-        brandColor: "#FFD700"
-      },
-      "NATURA1600": {
-        name: "Fujifilm Natura 1600",
-        type: "高速彩色负片",
-        iso: 1600,
-        weather: "暗光 / 室内",
-        scene: "夜景, 抓拍, 氛围",
-        desc: "月光机专用卷。在极低光照下也能保持自然的色彩还原。",
-        brandColor: "#E5004F"
-      }
-    }
+    film_types: data.film_types || [],
+    meta: data.film_meta || {},
+    default_film_type: data.default_film_type || "FUJI200",
   };
 }
 
-// ... (readOptions remains same)
+function readOptions() {
+  const grainStrength = Number($("grainStrength")?.value ?? 1);
+  const grain_enabled = grainStrength > 0.001;
+  return {
+    film_type: state.currentFilm,
+    tone_style: "filmic",
+    grain_enabled,
+    grain_strength: grainStrength,
+    grain_size: 1.0,
+    jpeg_quality: 95,
+  };
+}
 
 // Film Selector with Carousel
 let currentIndex = 0;
@@ -120,23 +71,17 @@ function renderFilmShelf(presets) {
   const track = $("carouselTrack");
   track.innerHTML = "";
 
-  const filmImages = [
-    "assets/film-cans/segment_01-removebg-preview.png",
-    "assets/film-cans/segment_02-removebg-preview.png",
-    "assets/film-cans/segment_03-removebg-preview.png",
-    "assets/film-cans/segment_04-removebg-preview.png",
-    "assets/film-cans/segment_05-removebg-preview.png",
-    "assets/film-cans/segment_06-removebg-preview.png",
-    "assets/film-cans/segment_07-removebg-preview.png",
-    "assets/film-cans/segment_08-removebg-preview.png"
-  ];
-
   presets.film_types.forEach((type, index) => {
     const info = presets.meta[type];
+    if (!info) {
+      console.warn("Missing film meta:", type);
+      return;
+    }
     const el = document.createElement("div");
     el.className = `film-canister ${type === state.currentFilm ? "active selected" : ""}`;
     el.dataset.film = type;
     el.dataset.index = index;
+    el.style.setProperty("--film-glow", hexToRgba(info.brandColor, 0.35));
 
     // Tooltip Structure
     const tooltip = `
@@ -160,7 +105,7 @@ function renderFilmShelf(presets) {
     `;
 
     el.innerHTML = `
-      <img src="${filmImages[index]}" alt="${info.name}" class="film-canister-img">
+      <img src="assets/film-cans/${info.image}" alt="${info.name}" class="film-canister-img">
       ${infoOverlay}
       ${tooltip}
     `;
@@ -194,9 +139,10 @@ function updateFilmInfo() {
   const info = state.presets.meta[state.currentFilm];
   if (!info) return;
 
+  $("currentFilm").textContent = state.currentFilm;
   $("infoType").textContent = info.type;
   $("infoIso").textContent = info.iso;
-  $("infoRec").textContent = info.weather;
+  $("infoRec").textContent = info.scene;
 }
 
 // Carousel Navigation
@@ -472,6 +418,12 @@ async function main() {
   try {
     const presets = await loadPresets();
     state.presets = presets;
+    const preferred = presets.default_film_type;
+    if (preferred && presets.film_types.includes(preferred)) {
+      state.currentFilm = preferred;
+    } else if (presets.film_types.length) {
+      state.currentFilm = presets.film_types[0];
+    }
     renderFilmShelf(presets);
     setStatus("系统就绪");
   } catch (e) {

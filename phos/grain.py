@@ -1,21 +1,33 @@
 from __future__ import annotations
 
-import cv2
 import numpy as np
+
+
+try:
+    import cv2  # type: ignore
+except Exception:
+    cv2 = None
+
+
+def _require_cv2():
+    if cv2 is None:
+        raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能使用颗粒/处理功能。")
+    return cv2
 
 
 def _gaussian_blur_float(image: np.ndarray, sigma: float) -> np.ndarray:
     if sigma <= 0:
         return image
+    cv2_mod = _require_cv2()
     ksize = int(max(3, round(sigma * 6)))
     if ksize % 2 == 0:
         ksize += 1
-    return cv2.GaussianBlur(
+    return cv2_mod.GaussianBlur(
         image,
         (ksize, ksize),
         sigmaX=float(sigma),
         sigmaY=float(sigma),
-        borderType=cv2.BORDER_REFLECT101,
+        borderType=cv2_mod.BORDER_REFLECT101,
     )
 
 
@@ -69,4 +81,3 @@ def grain(
         weighted_noise_b = None
 
     return weighted_noise_r, weighted_noise_g, weighted_noise_b, weighted_noise_total
-

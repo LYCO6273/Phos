@@ -419,7 +419,7 @@ body {
 }
 
 .film-canister:hover .film-canister-img {
-  filter: drop-shadow(0 12px 24px rgba(255, 193, 7, 0.3));
+  filter: drop-shadow(0 12px 24px var(--film-glow, rgba(255, 193, 7, 0.3)));
 }
 
 /* Film Info Overlay */
