@@ -7,6 +7,7 @@ import time
 import zipfile
 import zlib
 from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 from PIL import Image
@@ -64,6 +65,9 @@ class ProcessResult:
     jpeg_bytes: bytes
     output_filename: str
     process_time_s: float
+
+
+ProgressCallback = Callable[[float, str], None]
 
 
 def _ext_lower(filename: str) -> str:
@@ -249,9 +253,17 @@ def opt(
     E,
     F,
     tone_style: str,
+    progress_cb: ProgressCallback | None = None,
 ):
     if cv2 is None:
         raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能处理图像。")
+
+    def _progress(fraction: float, message: str) -> None:
+        if progress_cb is None:
+            return
+        f = float(np.clip(fraction, 0.0, 1.0))
+        progress_cb(f, message)
+
     avrl = average(lux_total)
     sens = (1.0 - avrl) * 0.75 + 0.10
     sens = np.clip(sens, 0.10, 0.7)
@@ -263,22 +275,26 @@ def opt(
     ksize = ksize if ksize % 2 == 1 else ksize + 1
 
     if color_type == ("color"):
+        _progress(0.05, "计算溢散（R）…")
         weights = (base + lux_r**2) * sens
         weights = np.clip(weights, 0, 1)
         bloom_layer = cv2.GaussianBlur(lux_r * weights, (ksize * 3, ksize * 3), sens * 55)
         bloom_effect_r = (bloom_layer * weights * strg) / (1.0 + (bloom_layer * weights * strg))
 
+        _progress(0.22, "计算溢散（G）…")
         weights = (base + lux_g**2) * sens
         weights = np.clip(weights, 0, 1)
         bloom_layer = cv2.GaussianBlur(lux_g * weights, (ksize * 2 + 1, ksize * 2 + 1), sens * 35)
         bloom_effect_g = (bloom_layer * weights * strg) / (1.0 + (bloom_layer * weights * strg))
 
+        _progress(0.40, "计算溢散（B）…")
         weights = (base + lux_b**2) * sens
         weights = np.clip(weights, 0, 1)
         bloom_layer = cv2.GaussianBlur(lux_b * weights, (ksize, ksize), sens * 15)
         bloom_effect_b = (bloom_layer * weights * strg) / (1.0 + (bloom_layer * weights * strg))
 
         if grain_enabled:
+            _progress(0.58, "生成胶片颗粒…")
             weighted_noise_r, weighted_noise_g, weighted_noise_b, _ = grain(
                 lux_r, lux_g, lux_b, lux_total, color_type, float(sens), float(grain_size), int(grain_seed)
             )
@@ -290,22 +306,27 @@ def opt(
             lux_g = bloom_effect_g * d_g + (lux_g**x_g) * l_g
             lux_b = bloom_effect_b * d_b + (lux_b**x_b) * l_b
 
+        _progress(0.74, "曲线映射…")
         if tone_style == "filmic":
             result_r, result_g, result_b, _ = filmic(lux_r, lux_g, lux_b, lux_total, color_type, gamma, A, B, C, D, E, F)
         else:
             result_r, result_g, result_b, _ = reinhard(lux_r, lux_g, lux_b, lux_total, color_type, gamma)
 
+        _progress(0.92, "合成输出…")
         combined_b = (result_b * 255).astype(np.uint8)
         combined_g = (result_g * 255).astype(np.uint8)
         combined_r = (result_r * 255).astype(np.uint8)
+        _progress(1.0, "合成输出…")
         return cv2.merge([combined_r, combined_g, combined_b])  # RGB order
 
+    _progress(0.12, "计算溢散…")
     weights = (base + lux_total**2) * sens
     weights = np.clip(weights, 0, 1)
     bloom_layer = cv2.GaussianBlur(lux_total * weights, (ksize * 3, ksize * 3), sens * 55)
     bloom_effect = (bloom_layer * weights * strg) / (1.0 + (bloom_layer * weights * strg))
 
     if grain_enabled:
+        _progress(0.55, "生成胶片颗粒…")
         _, _, _, weighted_noise_total = grain(
             lux_r, lux_g, lux_b, lux_total, color_type, float(sens), float(grain_size), int(grain_seed)
         )
@@ -313,24 +334,38 @@ def opt(
     else:
         lux_total = bloom_effect * d_l + (lux_total**x_l) * l_l
 
+    _progress(0.78, "曲线映射…")
     if tone_style == "filmic":
         _, _, _, result_total = filmic(lux_r, lux_g, lux_b, lux_total, color_type, gamma, A, B, C, D, E, F)
     else:
         _, _, _, result_total = reinhard(lux_r, lux_g, lux_b, lux_total, color_type, gamma)
 
+    _progress(1.0, "合成输出…")
     return (result_total * 255).astype(np.uint8)
 
 
-def process_bytes(file_bytes: bytes, filename: str, options: ProcessingOptions) -> ProcessResult:
+def process_bytes(
+    file_bytes: bytes,
+    filename: str,
+    options: ProcessingOptions,
+    progress_cb: ProgressCallback | None = None,
+) -> ProcessResult:
     film_type = resolve_film_type(options.film_type)
     if film_type not in FILM_TYPES:
         raise ValueError(f"Unknown film_type: {options.film_type}")
 
+    def _progress(pct: float, message: str) -> None:
+        if progress_cb is None:
+            return
+        progress_cb(float(np.clip(pct, 0.0, 100.0)), str(message))
+
     start_time = time.time()
 
+    _progress(2.0, "解析图片…")
     image_bgr = decode_bytes_to_bgr(file_bytes, filename)
     grain_seed = zlib.crc32(file_bytes)
 
+    _progress(12.0, "加载胶片参数…")
     (
         r_r,
         r_g,
@@ -371,6 +406,7 @@ def process_bytes(file_bytes: bytes, filename: str, options: ProcessingOptions) 
         F,
     ) = film_choose(film_type)
 
+    _progress(18.0, "预处理尺寸…")
     if options.grain_enabled:
         strength = float(options.grain_strength)
         n_r *= strength
@@ -381,7 +417,12 @@ def process_bytes(file_bytes: bytes, filename: str, options: ProcessingOptions) 
         n_r = n_g = n_b = n_l = 0.0
 
     image_bgr = standardize(image_bgr)
+    _progress(26.0, "计算亮度…")
     lux_r, lux_g, lux_b, lux_total = luminance(image_bgr, color_type, r_r, r_g, r_b, g_r, g_g, g_b, b_r, b_g, b_b, t_r, t_g, t_b)
+
+    def _opt_progress(fraction: float, message: str) -> None:
+        # Map opt() inner fraction [0..1] to overall [30..90]
+        _progress(30.0 + float(np.clip(fraction, 0.0, 1.0)) * 60.0, message)
 
     film_rgb = opt(
         lux_r,
@@ -417,9 +458,12 @@ def process_bytes(file_bytes: bytes, filename: str, options: ProcessingOptions) 
         E,
         F,
         str(options.tone_style),
+        _opt_progress,
     )
 
+    _progress(92.0, "编码 JPEG…")
     jpeg_bytes = encode_jpeg_bytes(film_rgb, quality=options.jpeg_quality)
+    _progress(100.0, "完成")
 
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     input_stem = os.path.splitext(os.path.basename(filename or "image"))[0]

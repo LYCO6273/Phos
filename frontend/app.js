@@ -5,6 +5,15 @@ const state = {
   currentFilm: "FUJI200",
   processedBlobUrl: null,
   originalBlobUrl: null,
+  progress: {
+    rafId: null,
+    startTs: 0,
+    value: 0,
+  },
+  job: {
+    id: null,
+    controller: null,
+  },
 };
 
 // --- Utils ---
@@ -69,6 +78,7 @@ function filenameFromContentDisposition(contentDisposition) {
 
 function resetSelection() {
   state.files = [];
+  cancelCurrentJob();
   if (state.processedBlobUrl) URL.revokeObjectURL(state.processedBlobUrl);
   if (state.originalBlobUrl) URL.revokeObjectURL(state.originalBlobUrl);
   state.processedBlobUrl = null;
@@ -88,9 +98,131 @@ function resetSelection() {
   const fileInput = $("files");
   if (fileInput) fileInput.value = "";
 
+  stopProgress();
   $("btnDownload").disabled = true;
   $("btnReset").disabled = true;
   setStatus("请选择图片");
+}
+
+function initProgressUI() {
+  const blocks = $("progressBlocks");
+  if (!blocks) return;
+  blocks.innerHTML = "";
+  const total = 24;
+  for (let i = 0; i < total; i += 1) {
+    const block = document.createElement("div");
+    block.className = "progress-block";
+    block.dataset.index = String(i);
+    blocks.appendChild(block);
+  }
+}
+
+function setProgress(pct) {
+  const wrap = $("progressWrap");
+  const blocks = $("progressBlocks");
+  const text = $("progressText");
+  if (!wrap || !blocks || !text) return;
+
+  const value = Math.max(0, Math.min(100, Number(pct) || 0));
+  state.progress.value = value;
+  text.textContent = `${Math.floor(value)}%`;
+
+  const nodes = blocks.querySelectorAll(".progress-block");
+  const activeCount = Math.round((value / 100) * nodes.length);
+  nodes.forEach((node, idx) => {
+    node.classList.toggle("active", idx < activeCount);
+    node.classList.toggle("pulse", idx === Math.min(activeCount, nodes.length - 1) && value < 100);
+  });
+}
+
+function startProgress() {
+  const wrap = $("progressWrap");
+  if (!wrap) return;
+  wrap.classList.remove("hidden");
+  // Ensure transition applies.
+  requestAnimationFrame(() => wrap.classList.add("visible"));
+
+  setProgress(0);
+}
+
+function stopProgress() {
+  const wrap = $("progressWrap");
+  if (!wrap) return;
+  state.progress.rafId = null;
+  state.progress.startTs = 0;
+  state.progress.value = 0;
+  wrap.classList.remove("visible");
+  setTimeout(() => {
+    wrap.classList.add("hidden");
+    setProgress(0);
+  }, 250);
+}
+
+function finishProgress() {
+  setProgress(100);
+  setTimeout(() => stopProgress(), 450);
+}
+
+function cancelCurrentJob() {
+  if (state.job.controller) {
+    try { state.job.controller.abort(); } catch {}
+  }
+  state.job.controller = null;
+  state.job.id = null;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function createJob(file, options, signal) {
+  const fd = new FormData();
+  fd.append("file", file);
+  Object.entries(options).forEach(([k, v]) => fd.append(k, String(v)));
+
+  const res = await fetch("/api/jobs", { method: "POST", body: fd, signal });
+  if (!res.ok) {
+    let detail = `创建任务失败 (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data && typeof data.detail !== "undefined") detail = String(data.detail);
+    } catch {
+      try {
+        const text = await res.text();
+        if (text) detail = text;
+      } catch {}
+    }
+    throw new Error(detail);
+  }
+
+  const data = await res.json();
+  const jobId = data?.job_id;
+  if (!jobId) throw new Error("任务创建失败：缺少 job_id");
+  return jobId;
+}
+
+async function pollJob(jobId, signal) {
+  const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, { signal });
+  if (!res.ok) throw new Error(`获取进度失败 (${res.status})`);
+  return res.json();
+}
+
+async function fetchJobResult(jobId, signal) {
+  const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/result`, { signal });
+  if (!res.ok) {
+    let detail = `获取结果失败 (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data && typeof data.detail !== "undefined") detail = String(data.detail);
+    } catch {
+      try {
+        const text = await res.text();
+        if (text) detail = text;
+      } catch {}
+    }
+    throw new Error(detail);
+  }
+  return res;
 }
 
 // --- API ---
@@ -348,7 +480,8 @@ async function processImage() {
   setStatus("正在冲洗...");
 
   $("btnProcess").disabled = true;
-  $("btnReset").disabled = true;
+  $("btnReset").disabled = false;
+  startProgress();
 
   // Add loading state to button
   const originalBtnText = $("btnProcess").textContent;
@@ -356,25 +489,30 @@ async function processImage() {
 
   try {
     const options = readOptions();
-    const fd = new FormData();
-    fd.append("file", file);
-    Object.entries(options).forEach(([k, v]) => fd.append(k, String(v)));
 
-    const res = await fetch("/api/process", { method: "POST", body: fd });
-    if (!res.ok) {
-      let detail = `冲洗失败 (${res.status})`;
-      try {
-        const data = await res.json();
-        if (data && typeof data.detail !== "undefined") detail = String(data.detail);
-      } catch {
-        try {
-          const text = await res.text();
-          if (text) detail = text;
-        } catch {}
-      }
-      throw new Error(detail);
+    cancelCurrentJob();
+    const controller = new AbortController();
+    state.job.controller = controller;
+    const signal = controller.signal;
+
+    const jobId = await createJob(file, options, signal);
+    state.job.id = jobId;
+
+    while (true) {
+      const job = await pollJob(jobId, signal);
+      const progress = Number(job?.progress ?? 0);
+      const message = String(job?.message ?? "");
+      const status = String(job?.status ?? "");
+      if (Number.isFinite(progress)) setProgress(progress);
+      if (message) setStatus(message);
+
+      if (status === "done") break;
+      if (status === "error") throw new Error(job?.error || job?.message || "冲洗失败");
+      await sleep(250);
     }
 
+    finishProgress();
+    const res = await fetchJobResult(jobId, signal);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
 
@@ -410,8 +548,15 @@ async function processImage() {
     setStatus("冲洗完成");
 
   } catch (e) {
+    if (e?.name === "AbortError") {
+      setStatus("已取消");
+      stopProgress();
+      return;
+    }
     setStatus(`错误: ${e.message}`, true);
+    stopProgress();
   } finally {
+    cancelCurrentJob();
     $("btnProcess").disabled = false;
     $("btnProcess").textContent = originalBtnText;
   }
@@ -482,6 +627,7 @@ function bindUI() {
   $("btnProcess").addEventListener("click", processImage);
   $("btnReset").addEventListener("click", resetSelection);
 
+  initProgressUI();
   initComparisonSlider();
   initDragDrop();
 }
