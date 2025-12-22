@@ -1,0 +1,777 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class FilmParams:
+    r_r: float
+    r_g: float
+    r_b: float
+    g_r: float
+    g_g: float
+    g_b: float
+    b_r: float
+    b_g: float
+    b_b: float
+    t_r: float
+    t_g: float
+    t_b: float
+    color_type: str
+    sens_factor: float
+    d_r: float | None
+    l_r: float | None
+    x_r: float | None
+    n_r: float | None
+    d_g: float | None
+    l_g: float | None
+    x_g: float | None
+    n_g: float | None
+    d_b: float | None
+    l_b: float | None
+    x_b: float | None
+    n_b: float | None
+    d_l: float | None
+    l_l: float | None
+    x_l: float | None
+    n_l: float
+    gamma: float
+    A: float
+    B: float
+    C: float
+    D: float
+    E: float
+    F: float
+
+    def as_tuple(self):
+        return (
+            self.r_r,
+            self.r_g,
+            self.r_b,
+            self.g_r,
+            self.g_g,
+            self.g_b,
+            self.b_r,
+            self.b_g,
+            self.b_b,
+            self.t_r,
+            self.t_g,
+            self.t_b,
+            self.color_type,
+            self.sens_factor,
+            self.d_r,
+            self.l_r,
+            self.x_r,
+            self.n_r,
+            self.d_g,
+            self.l_g,
+            self.x_g,
+            self.n_g,
+            self.d_b,
+            self.l_b,
+            self.x_b,
+            self.n_b,
+            self.d_l,
+            self.l_l,
+            self.x_l,
+            self.n_l,
+            self.gamma,
+            self.A,
+            self.B,
+            self.C,
+            self.D,
+            self.E,
+            self.F,
+        )
+
+
+def _bw(
+    *,
+    t_r: float,
+    t_g: float,
+    t_b: float,
+    sens_factor: float,
+    d_l: float,
+    l_l: float,
+    x_l: float,
+    n_l: float,
+    gamma: float,
+    A: float,
+    B: float,
+    C: float,
+    D: float,
+    E: float,
+    F: float,
+) -> FilmParams:
+    return FilmParams(
+        r_r=0.0,
+        r_g=0.0,
+        r_b=0.0,
+        g_r=0.0,
+        g_g=0.0,
+        g_b=0.0,
+        b_r=0.0,
+        b_g=0.0,
+        b_b=0.0,
+        t_r=t_r,
+        t_g=t_g,
+        t_b=t_b,
+        color_type="single",
+        sens_factor=sens_factor,
+        d_r=0.0,
+        l_r=0.0,
+        x_r=0.0,
+        n_r=0.0,
+        d_g=0.0,
+        l_g=0.0,
+        x_g=0.0,
+        n_g=0.0,
+        d_b=0.0,
+        l_b=0.0,
+        x_b=0.0,
+        n_b=0.0,
+        d_l=d_l,
+        l_l=l_l,
+        x_l=x_l,
+        n_l=n_l,
+        gamma=gamma,
+        A=A,
+        B=B,
+        C=C,
+        D=D,
+        E=E,
+        F=F,
+    )
+
+
+def _color(
+    *,
+    r_r: float,
+    r_g: float,
+    r_b: float,
+    g_r: float,
+    g_g: float,
+    g_b: float,
+    b_r: float,
+    b_g: float,
+    b_b: float,
+    t_r: float,
+    t_g: float,
+    t_b: float,
+    sens_factor: float,
+    d_r: float,
+    l_r: float,
+    x_r: float,
+    n_r: float,
+    d_g: float,
+    l_g: float,
+    x_g: float,
+    n_g: float,
+    d_b: float,
+    l_b: float,
+    x_b: float,
+    n_b: float,
+    n_l: float,
+    gamma: float,
+    A: float,
+    B: float,
+    C: float,
+    D: float,
+    E: float,
+    F: float,
+) -> FilmParams:
+    return FilmParams(
+        r_r=r_r,
+        r_g=r_g,
+        r_b=r_b,
+        g_r=g_r,
+        g_g=g_g,
+        g_b=g_b,
+        b_r=b_r,
+        b_g=b_g,
+        b_b=b_b,
+        t_r=t_r,
+        t_g=t_g,
+        t_b=t_b,
+        color_type="color",
+        sens_factor=sens_factor,
+        d_r=d_r,
+        l_r=l_r,
+        x_r=x_r,
+        n_r=n_r,
+        d_g=d_g,
+        l_g=l_g,
+        x_g=x_g,
+        n_g=n_g,
+        d_b=d_b,
+        l_b=l_b,
+        x_b=x_b,
+        n_b=n_b,
+        d_l=None,
+        l_l=None,
+        x_l=None,
+        n_l=n_l,
+        gamma=gamma,
+        A=A,
+        B=B,
+        C=C,
+        D=D,
+        E=E,
+        F=F,
+    )
+
+
+# --- Extra film stocks (front-end shelf) ---
+GOLD200 = _color(
+    r_r=0.82,
+    r_g=0.16,
+    r_b=0.12,
+    g_r=0.10,
+    g_g=0.83,
+    g_b=0.18,
+    b_r=0.06,
+    b_g=0.10,
+    b_b=0.90,
+    t_r=0.28,
+    t_g=0.34,
+    t_b=0.32,
+    sens_factor=1.15,
+    d_r=1.35,
+    l_r=0.98,
+    x_r=1.20,
+    n_r=0.17,
+    d_g=1.00,
+    l_g=0.82,
+    x_g=1.05,
+    n_g=0.17,
+    d_b=0.95,
+    l_b=0.86,
+    x_b=0.80,
+    n_b=0.17,
+    n_l=0.08,
+    gamma=2.0,
+    A=0.14,
+    B=0.52,
+    C=0.10,
+    D=0.24,
+    E=0.02,
+    F=0.32,
+)
+
+PORTRA400 = _color(
+    r_r=0.80,
+    r_g=0.13,
+    r_b=0.16,
+    g_r=0.08,
+    g_g=0.86,
+    g_b=0.22,
+    b_r=0.07,
+    b_g=0.09,
+    b_b=0.90,
+    t_r=0.24,
+    t_g=0.36,
+    t_b=0.36,
+    sens_factor=1.25,
+    d_r=1.40,
+    l_r=0.96,
+    x_r=1.10,
+    n_r=0.16,
+    d_g=0.98,
+    l_g=0.84,
+    x_g=1.00,
+    n_g=0.16,
+    d_b=1.00,
+    l_b=0.88,
+    x_b=0.72,
+    n_b=0.16,
+    n_l=0.07,
+    gamma=2.10,
+    A=0.12,
+    B=0.48,
+    C=0.12,
+    D=0.22,
+    E=0.02,
+    F=0.34,
+)
+
+FUJI200 = _color(
+    r_r=0.77,
+    r_g=0.12,
+    r_b=0.18,
+    g_r=0.08,
+    g_g=0.85,
+    g_b=0.23,
+    b_r=0.08,
+    b_g=0.09,
+    b_b=0.92,
+    t_r=0.25,
+    t_g=0.35,
+    t_b=0.35,
+    sens_factor=1.20,
+    d_r=1.48,
+    l_r=0.95,
+    x_r=1.18,
+    n_r=0.18,
+    d_g=1.02,
+    l_g=0.80,
+    x_g=1.02,
+    n_g=0.18,
+    d_b=1.02,
+    l_b=0.88,
+    x_b=0.78,
+    n_b=0.18,
+    n_l=0.08,
+    gamma=2.05,
+    A=0.15,
+    B=0.50,
+    C=0.10,
+    D=0.20,
+    E=0.02,
+    F=0.30,
+)
+
+VELVIA50 = _color(
+    r_r=0.86,
+    r_g=0.08,
+    r_b=0.10,
+    g_r=0.04,
+    g_g=0.92,
+    g_b=0.16,
+    b_r=0.03,
+    b_g=0.08,
+    b_b=0.98,
+    t_r=0.22,
+    t_g=0.33,
+    t_b=0.40,
+    sens_factor=1.00,
+    d_r=1.05,
+    l_r=1.02,
+    x_r=1.28,
+    n_r=0.10,
+    d_g=0.95,
+    l_g=0.90,
+    x_g=1.30,
+    n_g=0.10,
+    d_b=0.90,
+    l_b=0.92,
+    x_b=1.22,
+    n_b=0.10,
+    n_l=0.05,
+    gamma=2.25,
+    A=0.20,
+    B=0.60,
+    C=0.08,
+    D=0.18,
+    E=0.02,
+    F=0.26,
+)
+
+EKTAR100 = _color(
+    r_r=0.88,
+    r_g=0.10,
+    r_b=0.12,
+    g_r=0.05,
+    g_g=0.90,
+    g_b=0.15,
+    b_r=0.05,
+    b_g=0.06,
+    b_b=0.96,
+    t_r=0.26,
+    t_g=0.35,
+    t_b=0.35,
+    sens_factor=1.05,
+    d_r=1.25,
+    l_r=1.00,
+    x_r=1.25,
+    n_r=0.12,
+    d_g=0.95,
+    l_g=0.85,
+    x_g=1.12,
+    n_g=0.12,
+    d_b=0.90,
+    l_b=0.90,
+    x_b=0.90,
+    n_b=0.12,
+    n_l=0.06,
+    gamma=2.15,
+    A=0.16,
+    B=0.52,
+    C=0.08,
+    D=0.18,
+    E=0.02,
+    F=0.28,
+)
+
+E100 = _color(
+    r_r=0.90,
+    r_g=0.08,
+    r_b=0.06,
+    g_r=0.05,
+    g_g=0.90,
+    g_b=0.12,
+    b_r=0.04,
+    b_g=0.07,
+    b_b=0.97,
+    t_r=0.26,
+    t_g=0.34,
+    t_b=0.35,
+    sens_factor=1.05,
+    d_r=1.08,
+    l_r=1.00,
+    x_r=1.22,
+    n_r=0.12,
+    d_g=0.98,
+    l_g=0.86,
+    x_g=1.15,
+    n_g=0.12,
+    d_b=0.92,
+    l_b=0.90,
+    x_b=0.95,
+    n_b=0.12,
+    n_l=0.06,
+    gamma=2.20,
+    A=0.18,
+    B=0.58,
+    C=0.08,
+    D=0.18,
+    E=0.02,
+    F=0.26,
+)
+
+CINE800 = _color(
+    r_r=0.70,
+    r_g=0.12,
+    r_b=0.20,
+    g_r=0.06,
+    g_g=0.86,
+    g_b=0.26,
+    b_r=0.06,
+    b_g=0.10,
+    b_b=0.98,
+    t_r=0.18,
+    t_g=0.32,
+    t_b=0.44,
+    sens_factor=1.60,
+    d_r=2.20,
+    l_r=0.88,
+    x_r=1.08,
+    n_r=0.24,
+    d_g=1.30,
+    l_g=0.76,
+    x_g=1.00,
+    n_g=0.24,
+    d_b=1.05,
+    l_b=0.78,
+    x_b=0.72,
+    n_b=0.24,
+    n_l=0.10,
+    gamma=2.05,
+    A=0.14,
+    B=0.50,
+    C=0.11,
+    D=0.22,
+    E=0.02,
+    F=0.34,
+)
+
+XP2SUPER400 = _bw(
+    t_r=0.30,
+    t_g=0.34,
+    t_b=0.36,
+    sens_factor=1.22,
+    d_l=2.10,
+    l_l=0.92,
+    x_l=1.10,
+    n_l=0.16,
+    gamma=2.10,
+    A=0.14,
+    B=0.50,
+    C=0.14,
+    D=0.22,
+    E=0.02,
+    F=0.34,
+)
+
+NATURA1600 = _color(
+    r_r=0.73,
+    r_g=0.12,
+    r_b=0.22,
+    g_r=0.07,
+    g_g=0.86,
+    g_b=0.28,
+    b_r=0.06,
+    b_g=0.12,
+    b_b=0.94,
+    t_r=0.21,
+    t_g=0.36,
+    t_b=0.38,
+    sens_factor=1.75,
+    d_r=1.70,
+    l_r=0.85,
+    x_r=1.05,
+    n_r=0.28,
+    d_g=1.30,
+    l_g=0.72,
+    x_g=0.95,
+    n_g=0.28,
+    d_b=1.25,
+    l_b=0.75,
+    x_b=0.70,
+    n_b=0.28,
+    n_l=0.12,
+    gamma=1.95,
+    A=0.12,
+    B=0.46,
+    C=0.15,
+    D=0.28,
+    E=0.02,
+    F=0.38,
+)
+
+ILFORD5 = _bw(
+    t_r=0.25,
+    t_g=0.35,
+    t_b=0.40,
+    sens_factor=1.25,
+    d_l=2.05,
+    l_l=0.90,
+    x_l=1.10,
+    n_l=0.18,
+    gamma=2.15,
+    A=0.15,
+    B=0.52,
+    C=0.12,
+    D=0.24,
+    E=0.02,
+    F=0.32,
+)
+
+TRI_X400 = _bw(
+    t_r=0.28,
+    t_g=0.34,
+    t_b=0.38,
+    sens_factor=1.30,
+    d_l=2.25,
+    l_l=0.88,
+    x_l=1.18,
+    n_l=0.24,
+    gamma=2.20,
+    A=0.16,
+    B=0.55,
+    C=0.10,
+    D=0.26,
+    E=0.02,
+    F=0.30,
+)
+
+
+FILM_LIBRARY: dict[str, FilmParams] = {
+    "GOLD200": GOLD200,
+    "PORTRA400": PORTRA400,
+    "FUJI200": FUJI200,
+    "VELVIA50": VELVIA50,
+    "ILFORD5": ILFORD5,
+    "CINE800": CINE800,
+    "EKTAR100": EKTAR100,
+    "E100": E100,
+    "TRI_X400": TRI_X400,
+    "NATURA1600": NATURA1600,
+    "XP2SUPER400": XP2SUPER400,
+}
+
+FILM_TYPES = [
+    "FUJI200",
+    "VELVIA50",
+    "GOLD200",
+    "PORTRA400",
+    "EKTAR100",
+    "E100",
+    "CINE800",
+    "NATURA1600",
+    "ILFORD5",
+    "XP2SUPER400",
+    "TRI_X400",
+]
+
+FILM_ALIASES: dict[str, str] = {
+    "NC200": "FUJI200",
+}
+
+FILM_DESCRIPTIONS = {
+    "GOLD200": """GOLD200：灵感来自 Kodak Gold 200。暖色倾向与金色高光，反差适中，适合日光与怀旧氛围。""",
+    "PORTRA400": """PORTRA400：灵感来自 Kodak Portra 400。更柔和的对比与高光肩部，偏中性，强调肤色与层次。""",
+    "FUJI200": """FUJI200：灵感来自 Fujifilm C200。偏冷、绿色与洋红更活跃，日光下清爽锐利。""",
+    "VELVIA50": """VELVIA50：灵感来自 Fujifilm Velvia 50 反转片。高饱和与更硬的对比，蓝/绿更深，适合晴天风景与自然题材。""",
+    "ILFORD5": """ILFORD5：灵感来自 Ilford HP5 Plus。黑白负片，宽容度好，颗粒与边缘对比均衡，适合纪实与街头。""",
+    "CINE800": """CINE800：灵感来自 CineStill 800T（钨光片）。更强的高光溢散（偏红晕）与霓虹氛围，适合夜景与人造光。""",
+    "EKTAR100": """EKTAR100：灵感来自 Kodak Ektar 100。高饱和与更强反差，颗粒更细，适合晴天风景与建筑。""",
+    "E100": """E100：灵感来自 Kodak Ektachrome E100 反转片。色彩更“干净”、蓝色更深，高光更利落，整体对比更硬、宽容度更窄。""",
+    "TRI_X400": """TRI_X400：灵感来自 Kodak Tri‑X 400。经典黑白颗粒与更强反差，戏剧性更明显。""",
+    "NATURA1600": """NATURA1600：灵感来自 Fujifilm Natura 1600。高速卷的暗光表现：更明显颗粒、柔和的阴影与更强溢散。""",
+    "XP2SUPER400": """XP2SUPER400：灵感来自 Ilford XP2 Super 400（C‑41 黑白彩色负片）。宽容度高、灰阶平滑，颗粒更“干净”，适合人像与日常。""",
+}
+
+
+def resolve_film_type(film_type: str) -> str:
+    key = (film_type or "").strip().upper()
+    return FILM_ALIASES.get(key, key)
+
+
+@dataclass(frozen=True)
+class FilmMeta:
+    code: str
+    name: str
+    type: str
+    iso: int
+    weather: str
+    scene: str
+    desc: str
+    brand_color: str
+    image: str
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "code": self.code,
+            "name": self.name,
+            "type": self.type,
+            "iso": self.iso,
+            "weather": self.weather,
+            "scene": self.scene,
+            "desc": self.desc,
+            "brandColor": self.brand_color,
+            "image": self.image,
+        }
+
+
+FILM_META: dict[str, FilmMeta] = {
+    "FUJI200": FilmMeta(
+        code="FUJI200",
+        name="Fujifilm C200",
+        type="彩色负片",
+        iso=200,
+        weather="日光 / 自然",
+        scene="风景, 绿植, 城市",
+        desc=FILM_DESCRIPTIONS["FUJI200"],
+        brand_color="#48A14D",
+        image="FujifilmC200.png",
+    ),
+    "VELVIA50": FilmMeta(
+        code="VELVIA50",
+        name="Fujifilm Velvia 50",
+        type="彩色反转片",
+        iso=50,
+        weather="晴天 / 纯净日光",
+        scene="风景, 森林, 海边",
+        desc=FILM_DESCRIPTIONS["VELVIA50"],
+        brand_color="#2DB24A",
+        image="FujifilmVelvia50.png",
+    ),
+    "GOLD200": FilmMeta(
+        code="GOLD200",
+        name="Kodak Gold 200",
+        type="彩色负片",
+        iso=200,
+        weather="晴天 / 黄金时刻",
+        scene="街头, 旅行, 怀旧",
+        desc=FILM_DESCRIPTIONS["GOLD200"],
+        brand_color="#FFB800",
+        image="KodakGold200.png",
+    ),
+    "PORTRA400": FilmMeta(
+        code="PORTRA400",
+        name="Kodak Portra 400",
+        type="专业彩色负片",
+        iso=400,
+        weather="阴天 / 室内",
+        scene="人像, 婚礼, 肤色",
+        desc=FILM_DESCRIPTIONS["PORTRA400"],
+        brand_color="#E6C200",
+        image="KodakPortra400.png",
+    ),
+    "EKTAR100": FilmMeta(
+        code="EKTAR100",
+        name="Kodak Ektar 100",
+        type="专业彩色负片",
+        iso=100,
+        weather="晴天 / 户外",
+        scene="风景, 建筑, 产品",
+        desc=FILM_DESCRIPTIONS["EKTAR100"],
+        brand_color="#0095DA",
+        image="KodakEktar100.png",
+    ),
+    "E100": FilmMeta(
+        code="E100",
+        name="Kodak Ektachrome E100",
+        type="彩色反转片",
+        iso=100,
+        weather="晴天 / 硬光",
+        scene="风景, 纪实, 胶片幻灯",
+        desc=FILM_DESCRIPTIONS["E100"],
+        brand_color="#2D5BFF",
+        image="KodakEktachromeE100.png",
+    ),
+    "CINE800": FilmMeta(
+        code="CINE800",
+        name="CineStill 800T",
+        type="电影钨光片",
+        iso=800,
+        weather="夜晚 / 人造光",
+        scene="夜景, 霓虹灯, 电影感",
+        desc=FILM_DESCRIPTIONS["CINE800"],
+        brand_color="#D12E2E",
+        image="CineStill800T.png",
+    ),
+    "NATURA1600": FilmMeta(
+        code="NATURA1600",
+        name="Fujifilm Natura 1600",
+        type="高速彩色负片",
+        iso=1600,
+        weather="暗光 / 室内",
+        scene="夜景, 抓拍, 氛围",
+        desc=FILM_DESCRIPTIONS["NATURA1600"],
+        brand_color="#E5004F",
+        image="FujifilmNatura1600.png",
+    ),
+    "ILFORD5": FilmMeta(
+        code="ILFORD5",
+        name="Ilford HP5 Plus",
+        type="黑白负片",
+        iso=400,
+        weather="全天候 / 暗光",
+        scene="纪实, 街头, 艺术",
+        desc=FILM_DESCRIPTIONS["ILFORD5"],
+        brand_color="#FFFFFF",
+        image="IlfordHP5Plus.png",
+    ),
+    "XP2SUPER400": FilmMeta(
+        code="XP2SUPER400",
+        name="Ilford XP2 Super 400",
+        type="C-41 黑白负片",
+        iso=400,
+        weather="全天候 / 日常",
+        scene="人像, 日常, 旅行",
+        desc=FILM_DESCRIPTIONS["XP2SUPER400"],
+        brand_color="#BDBDBD",
+        image="IlfordXP2Super400.png",
+    ),
+    "TRI_X400": FilmMeta(
+        code="TRI_X400",
+        name="Kodak Tri-X 400",
+        type="黑白负片",
+        iso=400,
+        weather="全天候 / 街头",
+        scene="新闻, 纪实, 人文",
+        desc=FILM_DESCRIPTIONS["TRI_X400"],
+        brand_color="#FFD700",
+        image="KodakTri-X400(400TX).png",
+    ),
+}
+
+
+def film_choose(film_type: str):
+    film_type = resolve_film_type(film_type)
+    try:
+        params = FILM_LIBRARY[film_type]
+    except KeyError as exc:
+        raise ValueError(f"Unknown film_type: {film_type}") from exc
+    return params.as_tuple()
