@@ -27,14 +27,14 @@ email at lyco_p@163.com. I would be very grateful.
 
 ——————————————————————————————————————————————————————
 
-在0.1.1版本中，调整了Tone mapping的实现方式（从Reinhard到
-filmic),调整了彩色胶片的颗粒实现方式（考虑了颗粒的明度属性）
+在0.1.2版本中，调整了一些代码结构，以期提升运行效率，也调整了filmic
+映射的一些参数，但并不是特别理想，可能在下一版本尝试新的实现方式。
 
-In the update of version 0.1.1, we adjusted the method 
-of Tone mapping, from Reinhard to filimc. We also 
-adjusted the method of effcting the grain effects
-in the color films, taking the brightness effect into
-consideration.
+In the update of version 0.1.1, we adjusted some pieces 
+of the code, in order to improve the efficiency. We also 
+adjusted some parameters of the filmic mapping, but the 
+result is not very satisfactory. We may try new methods
+in the next version. 
 """
 
 import streamlit as st
@@ -86,13 +86,13 @@ def film_choose(film_type):
         l_l = None #全色感光层接受的直射光
         x_l = None #全色感光层的响应系数
         n_l = 0.08 #全色感光层的颗粒度
-        gamma = 2.05
-        A = 0.15 #肩部强度
-        B = 0.50 #线性段强度
+        gamma = 2.1
+        A = 0.025 #肩部强度
+        B = 0.92 #线性段强度
         C = 0.10 #线性段平整度
-        D = 0.20 #趾部强度
+        D = 0.07 #趾部强度
         E = 0.02 #趾部硬度
-        F = 0.30 #趾部软度
+        F = 0.55 #趾部软度
     elif film_type == ("FS200"):
         r_r = 0 #红色感光层吸收的红光
         r_g = 0 #红色感光层吸收的绿光
@@ -120,17 +120,17 @@ def film_choose(film_type):
         l_b = 0 #蓝色感光层接受的直射光
         x_b = 0 #蓝色感光层的响应系数
         n_b = 0 #蓝色感光层的颗粒度
-        d_l = 2.33 #全色感光层接受的散射光
-        l_l = 0.85 #全色感光层接受的直射光
-        x_l = 1.15 #全色感光层的响应系数
-        n_l = 0.20 #全色感光层的颗粒度
-        gamma = 2.2
-        A = 0.15 #肩部强度
-        B = 0.50 #线性段强度
+        d_l = 1.85 #全色感光层接受的散射光
+        l_l = 0.75 #全色感光层接受的直射光
+        x_l = 1.35 #全色感光层的响应系数
+        n_l = 0.18 #全色感光层的颗粒度
+        gamma = 1.8
+        A = 0.04 #肩部强度
+        B = 0.95 #线性段强度
         C = 0.10 #线性段平整度
-        D = 0.20 #趾部强度
-        E = 0.02 #趾部硬度
-        F = 0.30 #趾部软度
+        D = 0.16 #趾部强度
+        E = 0.05 #趾部硬度
+        F = 0.55 #趾部软度
     elif film_type == ("AS100"):
         r_r = 0 #红色感光层吸收的红光
         r_g = 0 #红色感光层吸收的绿光
@@ -162,13 +162,13 @@ def film_choose(film_type):
         l_l = 1.05 #全色感光层接受的直射光
         x_l = 1.25 #全色感光层的响应系数
         n_l = 0.10 #全色感光层的颗粒度
-        gamma = 2.0
-        A = 0.15 #肩部强度
-        B = 0.50 #线性段强度
-        C = 0.25 #线性段平整度
-        D = 0.35 #趾部强度
+        gamma = 1.98
+        A = 0.03 #肩部强度
+        B = 0.92 #线性段强度
+        C = 0.15 #线性段平整度
+        D = 0.07 #趾部强度
         E = 0.02 #趾部硬度
-        F = 0.35 #趾部软度
+        F = 0.55 #趾部软度
         
     return r_r,r_g,r_b,g_r,g_g,g_b,b_r,b_g,b_b,t_r,t_g,t_b,color_type,sens_factor,d_r,l_r,x_r,n_r,d_g,l_g,x_g,n_g,d_b,l_b,x_b,n_b,d_l,l_l,x_l,n_l,gamma,A,B,C,D,E,F
     #选取胶片类型
@@ -197,9 +197,11 @@ def standardize(image):
     new_width = new_width + 1 if new_width % 2 != 0 else new_width
     new_height = new_height + 1 if new_height % 2 != 0 else new_height
     interpolation = cv2.INTER_AREA if scale_factor < 1 else cv2.INTER_LANCZOS4
-    resized_image = cv2.resize(image, (new_width, new_height), interpolation=interpolation)
+    image = cv2.resize(image, (new_width, new_height), interpolation=interpolation)
+    
+    interpolation = None
 
-    return resized_image
+    return image
     #统一尺寸
 
 def luminance(image,color_type,r_r,r_g,r_b,g_r,g_g,g_b,b_r,b_g,b_b,t_r,t_g,t_b):
@@ -249,9 +251,12 @@ def grain(lux_r,lux_g,lux_b,lux_total,color_type,sens):
         # 应用权重
         sens_grain = np.clip (sens,0.4,0.6)
         weighted_noise = noise * weights* sens_grain
+        noise = None
+        weights = None
         # 添加轻微模糊
         weighted_noise = cv2.GaussianBlur(weighted_noise, (3, 3), 1)
         weighted_noise_r = np.clip(weighted_noise, -1,1)
+        weighted_noise = None
         # 应用颗粒
 
         # 创建正负噪声
@@ -264,9 +269,12 @@ def grain(lux_r,lux_g,lux_b,lux_total,color_type,sens):
         # 应用权重
         sens_grain = np.clip (sens,0.4,0.6)
         weighted_noise = noise * weights* sens_grain
+        noise = None
+        weights = None
         # 添加轻微模糊
         weighted_noise = cv2.GaussianBlur(weighted_noise, (3, 3), 1)
         weighted_noise_g = np.clip(weighted_noise, -1,1)
+        weighted_noise = None
         # 应用颗粒
 
         # 创建正负噪声
@@ -279,10 +287,12 @@ def grain(lux_r,lux_g,lux_b,lux_total,color_type,sens):
         # 应用权重
         sens_grain = np.clip (sens,0.4,0.6)
         weighted_noise = noise * weights* sens_grain
+        noise = None
+        weights = None
         # 添加轻微模糊
         weighted_noise = cv2.GaussianBlur(weighted_noise, (3, 3), 1)
         weighted_noise_b = np.clip(weighted_noise, -1,1)
-        
+        weighted_noise = None
         weighted_noise_total = None
         # 应用颗粒
         
@@ -298,9 +308,12 @@ def grain(lux_r,lux_g,lux_b,lux_total,color_type,sens):
         # 应用权重
         sens_grain = np.clip (sens,0.4,0.6)
         weighted_noise = noise * weights* sens_grain
+        noise = None
+        weights = None
         # 添加轻微模糊
         weighted_noise = cv2.GaussianBlur(weighted_noise, (3, 3), 1)
         weighted_noise_total = np.clip(weighted_noise, -1,1)
+        weighted_noise = None
         weighted_noise_r = None
         weighted_noise_g = None
         weighted_noise_b = None
@@ -310,7 +323,7 @@ def grain(lux_r,lux_g,lux_b,lux_total,color_type,sens):
     #创建颗粒函数
 
 def reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
-    #定义reinhard算法，exp为曝光度，gam为伽马值
+    #定义reinhard算法
     
     if color_type == "color":
 
@@ -320,6 +333,7 @@ def reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
         #应用reinhard算法
         mapped = np.power(mapped, 1.05/gamma)
         result_r = np.clip(mapped,0,1)
+        mapped = None
 
         mapped = lux_g
         #定义输入的图像
@@ -327,6 +341,7 @@ def reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
         #应用reinhard算法
         mapped = np.power(mapped, 1.05/gamma)
         result_g = np.clip(mapped,0,1)
+        mapped = None
 
         mapped = lux_b
         #定义输入的图像
@@ -334,6 +349,7 @@ def reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
         #应用reinhard算法
         mapped = np.power(mapped, 1.05/gamma)
         result_b = np.clip(mapped,0,1)
+        mapped = None
         result_total = None
     else:
         mapped = lux_total
@@ -342,6 +358,7 @@ def reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
         #应用reinhard算法
         mapped = np.power(mapped, 1.0/gamma)
         result_total = np.clip(mapped,0,1)
+        mapped = None
         result_r = None
         result_g = None
         result_b = None
@@ -358,9 +375,9 @@ def filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F):
         lux_g = np.maximum(lux_g, 0)
         lux_b = np.maximum(lux_b, 0)
 
-        lux_r = 10 * (lux_r ** gamma)
-        lux_g = 10 * (lux_g ** gamma)
-        lux_b = 10 * (lux_b ** gamma)
+        lux_r = 100 * (lux_r ** gamma)
+        lux_g = 100 * (lux_g ** gamma)
+        lux_b = 100 * (lux_b ** gamma)
 
         result_r = ((lux_r * (A * lux_r + C * B) + D * E) / (lux_r * (A * lux_r + B) + D * F)) - E/F
         result_g = ((lux_g * (A * lux_g + C * B) + D * E) / (lux_g * (A * lux_g + B) + D * F)) - E/F
@@ -368,7 +385,7 @@ def filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F):
         result_total = None
     else:
         lux_total = np.maximum(lux_total, 0)
-        lux_total = 10 * (lux_total ** gamma)
+        lux_total = 100 * (lux_total ** gamma)
         result_r = None
         result_g = None
         result_b = None
@@ -402,7 +419,11 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
         bloom_effect = (bloom_effect/ (1.0 + bloom_effect))
         bloom_effect_r = bloom_effect
         #应用光晕
-    
+
+        bloom_effect = None
+        weights = None
+        bloom_layer = None
+
         weights = (base + lux_g**2 ) * sens
         weights = np.clip(weights,0,1)
         bloom_layer = cv2.GaussianBlur(lux_g * weights, (ksize * 2 +1 , ksize * 2 +1 ),sens * 35)
@@ -411,6 +432,10 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
         bloom_effect = (bloom_effect/ (1.0 + bloom_effect))
         bloom_effect_g = bloom_effect
         #应用光晕
+
+        bloom_effect = None
+        weights = None
+        bloom_layer = None
     
         weights = (base + lux_b**2 ) * sens
         weights = np.clip(weights,0,1)
@@ -422,6 +447,10 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
         bloom_effect_b = bloom_effect
         #应用光晕
         
+        bloom_effect = None
+        weights = None
+        bloom_layer = None
+
         if grain_style == ("不使用"):
             lux_r = bloom_effect_r * d_r + (lux_r**x_r) * l_r
             lux_g = bloom_effect_g * d_g + (lux_g**x_g) * l_g
@@ -433,6 +462,13 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
             lux_g = bloom_effect_g * d_g + (lux_g**x_g) * l_g + weighted_noise_r *n_l + weighted_noise_g *n_g+ weighted_noise_b *n_l
             lux_b = bloom_effect_b * d_b + (lux_b**x_b) * l_b + weighted_noise_r *n_l + weighted_noise_g *n_l + weighted_noise_b *n_b
         
+        bloom_effect_r = None
+        bloom_effect_g = None
+        bloom_effect_b = None
+        weighted_noise_r = None
+        weighted_noise_g = None
+        weighted_noise_b = None
+
         #拼合光层
         if Tone_style == "filmic":
             (result_r,result_g,result_b,result_total) = filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F)
@@ -440,11 +476,19 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
         else:
             (result_r,result_g,result_b,result_total) = reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma)
             #应用映射
+        
+        lux_r = None
+        lux_g = None
+        lux_b = None
 
-        combined_b = (result_b * 255).astype(np.uint8)
-        combined_g = (result_g * 255).astype(np.uint8)
-        combined_r = (result_r * 255).astype(np.uint8)
-        film = cv2.merge([combined_r, combined_g, combined_b])
+        result_b = (result_b * 255).astype(np.uint8)
+        result_g = (result_g * 255).astype(np.uint8)
+        result_r = (result_r * 255).astype(np.uint8)
+        film = cv2.merge([result_r, result_g, result_b])
+        result_r = None
+        result_g = None
+        result_b = None
+
     else:
         weights = (base + lux_total**2) * sens 
         weights = np.clip(weights,0,1)
@@ -454,6 +498,10 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
         bloom_effect = bloom_layer * weights * strg
         bloom_effect = (bloom_effect/ (1.0 + bloom_effect))
         #应用光晕
+
+        weights = None
+        bloom_layer = None
+
         if grain_style == ("不使用"):
             lux_total = bloom_effect * d_l + (lux_total**x_l) * l_l
         else:
@@ -461,6 +509,9 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
             #应用颗粒
             lux_total = bloom_effect * d_l + (lux_total**x_l) * l_l + weighted_noise_total *n_l
         
+        bloom_effect = None
+        weighted_noise_total = None
+
         #拼合光层
         
         if Tone_style == "filmic":
@@ -469,8 +520,10 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
         else:
             (result_r,result_g,result_b,result_total) = reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma)
             #应用reinhard映射
-
+        
+        lux_total = None
         film = (result_total * 255).astype(np.uint8)
+        lux_total = None
 
     return film
     #返回渲染后的光度
@@ -482,8 +535,10 @@ def process(uploaded_image,film_type,grain_style,Tone_style):
     start_time = time.time()
 
     # 读取上传的文件
-    file_bytes = np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8)
-    image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    image = np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8)
+    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+    uploaded_image = None
+
     # 获取胶片参数
     (r_r,r_g,r_b,g_r,g_g,g_b,b_r,b_g,b_b,t_r,t_g,t_b,color_type,sens_factor,d_r,l_r,x_r,n_r,d_g,l_g,x_g,n_g,d_b,l_b,x_b,n_b,d_l,l_l,x_l,n_l,gamma,A,B,C,D,E,F) = film_choose(film_type)
     
@@ -530,7 +585,7 @@ with st.sidebar:
     st.subheader("基于计算光学的胶片模拟")
     st.text("")
     st.text("原理验证demo")
-    st.text("ver_0.1.1")
+    st.text("ver_0.1.2")
     st.text("")
     st.text("🎞️ 胶片设置")
     # 胶片类型选择
@@ -566,10 +621,9 @@ with st.sidebar:
         "曲线映射：",
         ["filmic","reinhard"],
         index = 0,
-        help = '''选择Tone mapping方式:
-        
+        help = """选择Tone mapping方式:
         目前版本下Reinhard模型似乎表现出更好的动态范围，
-        filmic模型尚不够完善,但对肩部趾部有更符合目标的刻画''',
+        filmic模型尚不够完善,但对肩部趾部有更符合目标的刻画""",
     )
 
     st.success(f"已选择胶片: {film_type}") 
