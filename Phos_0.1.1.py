@@ -477,7 +477,7 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
     #进行底片成像
     #准备暗房工具
 
-def process(uploaded_image,film_type,grain_style,Tone_syle):
+def process(uploaded_image,film_type,grain_style,Tone_style):
     
     start_time = time.time()
 
@@ -591,15 +591,9 @@ if uploaded_image is not None:
     buf = io.BytesIO()
     film_pil.save(buf, format="JPEG", quality=100)
     byte_im = buf.getvalue()
-    
-    # 创建字节缓冲区
-    buf = io.BytesIO()
-    film_pil.save(buf, format="JPEG")
-    byte_im = buf.getvalue()
     st.download_button(
         label="📥 下载高清图像",
         data=byte_im,
         file_name=output_path,
         mime="image/jpeg"
     )
-    uploaded_image = None
