@@ -16,9 +16,11 @@
 
 # 依赖Requirments
 
-本项目基于Python 3.13编写
+推荐 Python 3.11（devcontainer 也使用 3.11）
 
-This project is based on Python 3.13
+Recommended Python 3.11 (the devcontainer also uses 3.11)
+
+> 历史版本 README 标注过 Python 3.13；如果你使用 3.13 也许可以运行，但目前更建议以 3.11 为准。
 
 本项目依赖以下库：
 
@@ -37,6 +39,39 @@ Compatibility is not yet clear. If any issues occur during operation, please ref
 RAW 支持说明：
 - 解析相机 RAW（如 DNG/NEF/CR2/ARW 等）依赖 `rawpy`（底层需要 libraw；在部分平台可能需要编译环境或系统依赖），可选安装：`python -m pip install -r requirements-raw.txt`。
 - README 里标注的 Python 为 3.13，但 devcontainer 目前使用 Python 3.11；如遇安装/兼容问题请优先以 devcontainer 环境为准。
+
+# 推荐：使用虚拟环境运行（venv）
+
+创建虚拟环境（建议放在项目根目录，命名为 `.venv`）：
+
+```bash
+python3.11 -m venv .venv
+```
+
+激活虚拟环境：
+
+```bash
+# macOS / Linux
+source .venv/bin/activate
+
+# Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+
+# Windows (cmd)
+.venv\Scripts\activate.bat
+```
+
+安装依赖：
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+（可选）启用 RAW 支持：
+
+```bash
+python -m pip install -r requirements-raw.txt
+```
 
 # 运行方式
 

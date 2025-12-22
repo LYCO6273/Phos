@@ -171,8 +171,7 @@ def standardize(image_bgr: np.ndarray, min_size: int = 3000) -> np.ndarray:
     if cv2 is None:
         raise RuntimeError("opencv-python 未安装：请先安装 opencv-python 才能处理图像。")
     height, width = image_bgr.shape[:2]
-    if min(height, width) <= int(min_size):
-        return image_bgr
+    
     if height < width:
         scale_factor = min_size / height
         new_height = min_size
@@ -468,21 +467,10 @@ def process_bytes(
         n_r = n_g = n_b = n_l = 0.0
 
     image_bgr = standardize(image_bgr)
-    min_dim = int(min(image_bgr.shape[0], image_bgr.shape[1]))
-    if options.grain_enabled:
-        if min_dim < 1200 and warning_cb is not None:
-            warning_cb(f"图片分辨率偏小（短边 {min_dim}px），颗粒效果可能偏粗糙；已自动降低颗粒强度/粗细。")
-
-        # Auto-scale grain for small images to avoid overly coarse/ugly grain.
-        # Reference is 3000px (same as standardize min_size).
-        grain_scale = float(np.clip(min_dim / 3000.0, 0.35, 1.0))
-        n_r *= grain_scale
-        n_g *= grain_scale
-        n_b *= grain_scale
-        n_l *= grain_scale
-        grain_size = float(options.grain_size) * grain_scale
-    else:
-        grain_size = float(options.grain_size)
+    
+    # Logic restored to match original: no auto-scaling of grain based on resolution
+    # since standardize() now enforces min_size=3000.
+    grain_size = float(options.grain_size)
 
     _progress(26.0, "计算亮度…")
     lux_r, lux_g, lux_b, lux_total = luminance(image_bgr, color_type, r_r, r_g, r_b, g_r, g_g, g_b, b_r, b_g, b_b, t_r, t_g, t_b)
