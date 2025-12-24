@@ -86,7 +86,7 @@ def film_choose(film_type):
         n_l = 0.08 #全色感光层的颗粒度
         gamma = 2.05
         gam_for_log = 1.10
-        exp_for_log = 1.15
+        exp_for_log = 0.95
         A = 0.025 #肩部强度
         B = 0.92 #线性段强度
         C = 0.10 #线性段平整度
@@ -125,8 +125,8 @@ def film_choose(film_type):
         x_l = 1.35 #全色感光层的响应系数
         n_l = 0.18 #全色感光层的颗粒度
         gamma = 1.8
-        gam_for_log = 1.5
-        exp_for_log = 1.5
+        gam_for_log = 1.35
+        exp_for_log = 1.15
         A = 0.04 #肩部强度
         B = 0.95 #线性段强度
         C = 0.10 #线性段平整度
@@ -165,8 +165,8 @@ def film_choose(film_type):
         x_l = 1.25 #全色感光层的响应系数
         n_l = 0.10 #全色感光层的颗粒度
         gamma = 1.98
-        gam_for_log = 1.5
-        exp_for_log = 1.5
+        gam_for_log = 1.05
+        exp_for_log = 1.05
         A = 0.03 #肩部强度
         B = 0.92 #线性段强度
         C = 0.15 #线性段平整度
@@ -379,19 +379,20 @@ def log_tone(lux_r,lux_g,lux_b,lux_total,color_type,gam_for_log,exp_for_log):
         lux_g = np.maximum(lux_g, 0)
         lux_b = np.maximum(lux_b, 0)
 
-        result_r = np.log(((lux_r**exp_for_log)**gam_for_log) + 1.000001)
+        result_r = np.log(((lux_r*exp_for_log)**gam_for_log) + 1.000001)
         result_r = np.clip(result_r,0,1)
 
-        result_g = np.log(((lux_g**exp_for_log)**gam_for_log) + 1.000001)
+        result_g = np.log(((lux_g*exp_for_log)**gam_for_log) + 1.000001)
         result_g = np.clip(result_g,0,1)
 
-        result_b = np.log(((lux_b**exp_for_log)**gam_for_log) + 1.000001)
+        result_b = np.log(((lux_b*exp_for_log)**gam_for_log) + 1.000001)
         result_b = np.clip(result_b,0,1)
         result_total = None
     else:
         lux_total = np.maximum(lux_total, 0)
 
-        result_total = np.log(((lux_total**exp_for_log)**gam_for_log) + 1.000001)
+        result_total = np.log(((lux_total*exp_for_log)**gam_for_log) + 1.000001)
+        result_total = np.clip(result_total,0,1)
         result_r = None
         result_g = None
         result_b = None
@@ -657,11 +658,13 @@ with st.sidebar:
     
     Tone_style = st.selectbox(
         "曲线映射：",
-        ["filmic","reinhard","log"],
+        ["log","filmic","reinhard"],
         index = 0,
         help = """选择Tone mapping方式:
-        目前版本下Reinhard模型似乎表现出更好的动态范围，
-        filmic模型尚不够完善,但对肩部趾部有更符合目标的刻画""",
+        log: 基于对数的色调映射，理论上有比较自然的观感。
+        reinhard: 基于Reinhard的色调映射。
+        filmic: 基于filmic tone mapping的色调映射，参数很多，只是还没调好（笑）
+        """,
     )
 
     st.success(f"已选择胶片: {film_type}") 
