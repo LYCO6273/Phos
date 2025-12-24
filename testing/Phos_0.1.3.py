@@ -384,7 +384,7 @@ def log_tone(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
         result_r = None
         result_g = None
         result_b = None
-        
+
     return result_r,result_g,result_b,result_total
 
 def filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F):
@@ -609,7 +609,7 @@ with st.sidebar:
     st.subheader("基于计算光学的胶片模拟")
     st.text("")
     st.text("原理验证demo")
-    st.text("ver_0.1.2")
+    st.text("ver_0.1.3")
     st.text("")
     st.text("🎞️ 胶片设置")
     # 胶片类型选择
@@ -643,7 +643,7 @@ with st.sidebar:
     
     Tone_style = st.selectbox(
         "曲线映射：",
-        ["filmic","reinhard"],
+        ["filmic","reinhard","log"],
         index = 0,
         help = """选择Tone mapping方式:
         目前版本下Reinhard模型似乎表现出更好的动态范围，
