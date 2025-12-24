@@ -85,6 +85,8 @@ def film_choose(film_type):
         x_l = None #全色感光层的响应系数
         n_l = 0.08 #全色感光层的颗粒度
         gamma = 2.1
+        gam_for_log = 1.15
+        exp_for_log = 1.25
         A = 0.025 #肩部强度
         B = 0.92 #线性段强度
         C = 0.10 #线性段平整度
@@ -123,6 +125,8 @@ def film_choose(film_type):
         x_l = 1.35 #全色感光层的响应系数
         n_l = 0.18 #全色感光层的颗粒度
         gamma = 1.8
+        gam_for_log = 1.5
+        exp_for_log = 1.5
         A = 0.04 #肩部强度
         B = 0.95 #线性段强度
         C = 0.10 #线性段平整度
@@ -161,14 +165,16 @@ def film_choose(film_type):
         x_l = 1.25 #全色感光层的响应系数
         n_l = 0.10 #全色感光层的颗粒度
         gamma = 1.98
+        gam_for_log = 1.5
+        exp_for_log = 1.5
         A = 0.03 #肩部强度
         B = 0.92 #线性段强度
         C = 0.15 #线性段平整度
         D = 0.07 #趾部强度
         E = 0.02 #趾部硬度
         F = 0.55 #趾部软度
-        
-    return r_r,r_g,r_b,g_r,g_g,g_b,b_r,b_g,b_b,t_r,t_g,t_b,color_type,sens_factor,d_r,l_r,x_r,n_r,d_g,l_g,x_g,n_g,d_b,l_b,x_b,n_b,d_l,l_l,x_l,n_l,gamma,A,B,C,D,E,F
+
+    return r_r,r_g,r_b,g_r,g_g,g_b,b_r,b_g,b_b,t_r,t_g,t_b,color_type,sens_factor,d_r,l_r,x_r,n_r,d_g,l_g,x_g,n_g,d_b,l_b,x_b,n_b,d_l,l_l,x_l,n_l,gamma,gam_for_log,exp_for_log,A,B,C,D,E,F
     #选取胶片类型
 
 def standardize(image):
@@ -329,7 +335,7 @@ def reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
         #定义输入的图像
         mapped = mapped * (mapped/ (1.0 + mapped))
         #应用reinhard算法
-        mapped = np.power(mapped, 1.05/gamma)
+        mapped = np.power(mapped, 1.0/gamma)
         result_r = np.clip(mapped,0,1)
         mapped = None
 
@@ -337,7 +343,7 @@ def reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
         #定义输入的图像
         mapped = mapped * (mapped/ (1.0 + mapped))
         #应用reinhard算法
-        mapped = np.power(mapped, 1.05/gamma)
+        mapped = np.power(mapped, 1.0/gamma)
         result_g = np.clip(mapped,0,1)
         mapped = None
 
@@ -345,7 +351,7 @@ def reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
         #定义输入的图像
         mapped = mapped * (mapped/ (1.0 + mapped))
         #应用reinhard算法
-        mapped = np.power(mapped, 1.05/gamma)
+        mapped = np.power(mapped, 1.0/gamma)
         result_b = np.clip(mapped,0,1)
         mapped = None
         result_total = None
@@ -364,7 +370,7 @@ def reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
     return result_r,result_g,result_b,result_total
     #创建reinhard函数
 
-def log_tone(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
+def log_tone(lux_r,lux_g,lux_b,lux_total,color_type,gam_for_log,exp_for_log):
     #定义log tone mapping算法
 
     if color_type == "color":
@@ -373,14 +379,19 @@ def log_tone(lux_r,lux_g,lux_b,lux_total,color_type,gamma):
         lux_g = np.maximum(lux_g, 0)
         lux_b = np.maximum(lux_b, 0)
 
-        result_r = np.log((lux_r**gamma) + 1.000001)
-        result_g = np.log((lux_g**gamma) + 1.000001)
-        result_b = np.log((lux_b**gamma) + 1.000001)
+        result_r = np.log(((lux_r**exp_for_log)**gam_for_log) + 1.000001)
+        result_r = np.clip(result_r,0,1)
+
+        result_g = np.log(((lux_g**exp_for_log)**gam_for_log) + 1.000001)
+        result_g = np.clip(result_g,0,1)
+
+        result_b = np.log(((lux_b**exp_for_log)**gam_for_log) + 1.000001)
+        result_b = np.clip(result_b,0,1)
         result_total = None
     else:
         lux_total = np.maximum(lux_total, 0)
 
-        result_total = np.log((lux_total**gamma) + 1.000001)
+        result_total = np.log(((lux_total**exp_for_log)**gam_for_log) + 1.000001)
         result_r = None
         result_g = None
         result_b = None
@@ -414,7 +425,7 @@ def filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F):
     
     return result_r,result_g,result_b,result_total
 
-def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r, d_g, l_g, x_g, n_g, d_b, l_b, x_b, n_b, d_l, l_l, x_l, n_l,grain_style,gamma,A,B,C,D,E,F,Tone_style):
+def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r, d_g, l_g, x_g, n_g, d_b, l_b, x_b, n_b, d_l, l_l, x_l, n_l,grain_style,gamma,gam_for_log,exp_for_log,A,B,C,D,E,F,Tone_style):
     #opt 光学扩散函数
 
     avrl = average(lux_total)
@@ -498,7 +509,7 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
             (result_r,result_g,result_b,result_total) = reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma)
             #应用reinhard映射
         else:
-            (result_r,result_g,result_b,result_total) = log_tone(lux_r,lux_g,lux_b,lux_total,color_type,gamma)
+            (result_r,result_g,result_b,result_total) = log_tone(lux_r,lux_g,lux_b,lux_total,color_type,gam_for_log,exp_for_log)
             #应用log映射
 
         lux_r = None
@@ -541,10 +552,13 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
         if Tone_style == "filmic":
             (result_r,result_g,result_b,result_total) = filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F)
             #应用flimic映射
-        else:
+        elif Tone_style == "reinhard":
             (result_r,result_g,result_b,result_total) = reinhard(lux_r,lux_g,lux_b,lux_total,color_type,gamma)
             #应用reinhard映射
-        
+        else:
+            (result_r,result_g,result_b,result_total) = log_tone(lux_r,lux_g,lux_b,lux_total,color_type,gam_for_log,exp_for_log)
+            #应用log映射
+
         lux_total = None
         film = (result_total * 255).astype(np.uint8)
         lux_total = None
@@ -564,7 +578,7 @@ def process(uploaded_image,film_type,grain_style,Tone_style):
     uploaded_image = None
 
     # 获取胶片参数
-    (r_r,r_g,r_b,g_r,g_g,g_b,b_r,b_g,b_b,t_r,t_g,t_b,color_type,sens_factor,d_r,l_r,x_r,n_r,d_g,l_g,x_g,n_g,d_b,l_b,x_b,n_b,d_l,l_l,x_l,n_l,gamma,A,B,C,D,E,F) = film_choose(film_type)
+    (r_r,r_g,r_b,g_r,g_g,g_b,b_r,b_g,b_b,t_r,t_g,t_b,color_type,sens_factor,d_r,l_r,x_r,n_r,d_g,l_g,x_g,n_g,d_b,l_b,x_b,n_b,d_l,l_l,x_l,n_l,gamma,gam_for_log,exp_for_log,A,B,C,D,E,F) = film_choose(film_type)
     
     if grain_style == ("默认"):
         n_r = n_r * 1.0
@@ -593,7 +607,7 @@ def process(uploaded_image,film_type,grain_style,Tone_style):
 
     (lux_r,lux_g,lux_b,lux_total) = luminance(image,color_type,r_r,r_g,r_b,g_r,g_g,g_b,b_r,b_g,b_b,t_r,t_g,t_b)
     #重建光线
-    film = opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r, d_g, l_g, x_g, n_g, d_b, l_b, x_b, n_b, d_l, l_l, x_l, n_l,grain_style,gamma,A,B,C,D,E,F,Tone_style)
+    film = opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r, d_g, l_g, x_g, n_g, d_b, l_b, x_b, n_b, d_l, l_l, x_l, n_l,grain_style,gamma,gam_for_log,exp_for_log,A,B,C,D,E,F,Tone_style)
     #冲洗底片
     
     timestamp = time.strftime("%Y%m%d_%H%M%S")
