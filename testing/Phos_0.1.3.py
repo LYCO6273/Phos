@@ -52,6 +52,13 @@ import time
 from PIL import Image
 import io
 
+uploaded_image = None
+uploaded_image = st.file_uploader(
+"选择一张照片来开始冲洗",
+type=["jpg", "jpeg", "png"],
+help="上传一张照片冲洗试试看吧"
+)
+
 def film_choose(film_type):
     if film_type == ("NC200"):
         r_r = 0.77 #红色感光层吸收的红光
@@ -427,15 +434,15 @@ def filmic(lux_r,lux_g,lux_b,lux_total,color_type,gamma,A,B,C,D,E,F):
     return result_r,result_g,result_b,result_total
 
 def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r, d_g, l_g, x_g, n_g, d_b, l_b, x_b, n_b, d_l, l_l, x_l, n_l,grain_style,gamma,gam_for_log,exp_for_log,A,B,C,D,E,F,Tone_style):
-    #opt 光学扩散函数
+    #光学扩散函数
 
     avrl = average(lux_total)
     # 根据平均亮度计算敏感度
     sens = (1.0 - avrl) * 0.75 + 0.10
     # 将敏感度限制在0-1范围内
     sens = np.clip(sens,0.10,0.7) #sens -- 高光敏感度
-    strg = 23 * sens**2 * sens_factor #strg -- 光晕强度
-    rads = np.clip(int(20 * sens**2 * sens_factor),1,50) #rads -- 光晕扩散半径
+    strg = 23 * sens**2 * sens_factor #strg -- 散射强度
+    rads = np.clip(int(20 * sens**2 * sens_factor),1,50) #rads -- 散射扩散半径
     base = 0.05 * sens_factor #base -- 基础扩散强度
 
     ksize = rads * 2 + 1
@@ -445,40 +452,39 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
     if color_type == ("color"):
         weights = (base + lux_r**2) * sens 
         weights = np.clip(weights,0,1)
-        #创建光晕层
+        #创建散射层
         bloom_layer = cv2.GaussianBlur(lux_r * weights, (ksize * 3 , ksize * 3),sens * 55)
-        #开始高斯模糊
+        #通过加权高斯模糊，相对轻量地模拟光在底片上的散射
         bloom_effect = bloom_layer * weights * strg
         bloom_effect = (bloom_effect/ (1.0 + bloom_effect))
         bloom_effect_r = bloom_effect
-        #应用光晕
-
+        #应用散射
         bloom_effect = None
         weights = None
         bloom_layer = None
 
         weights = (base + lux_g**2 ) * sens
         weights = np.clip(weights,0,1)
+        #创建散射层
         bloom_layer = cv2.GaussianBlur(lux_g * weights, (ksize * 2 +1 , ksize * 2 +1 ),sens * 35)
-        #开始高斯模糊
+        #通过加权高斯模糊，相对轻量地模拟光在底片上的散射
         bloom_effect = bloom_layer * weights * strg
         bloom_effect = (bloom_effect/ (1.0 + bloom_effect))
         bloom_effect_g = bloom_effect
-        #应用光晕
-
+        #应用散射
         bloom_effect = None
         weights = None
         bloom_layer = None
     
         weights = (base + lux_b**2 ) * sens
         weights = np.clip(weights,0,1)
-        #创建光晕层
+        #创建散射层
         bloom_layer = cv2.GaussianBlur(lux_b * weights, (ksize, ksize),sens * 15)
-        #开始高斯模糊
+        #通过加权高斯模糊，相对轻量地模拟光在底片上的散射
         bloom_effect = bloom_layer * weights * strg
         bloom_effect = (bloom_effect/ (1.0 + bloom_effect))
         bloom_effect_b = bloom_effect
-        #应用光晕
+        #应用散射
         
         bloom_effect = None
         weights = None
@@ -528,12 +534,12 @@ def opt(lux_r,lux_g,lux_b,lux_total,color_type, sens_factor, d_r, l_r, x_r, n_r,
     else:
         weights = (base + lux_total**2) * sens 
         weights = np.clip(weights,0,1)
-        #创建光晕层
+        #创建散射层
         bloom_layer = cv2.GaussianBlur(lux_total * weights, (ksize * 3 , ksize * 3),sens * 55)
-        #开始高斯模糊
+        #通过加权高斯模糊，相对轻量地模拟光在底片上的散射
         bloom_effect = bloom_layer * weights * strg
         bloom_effect = (bloom_effect/ (1.0 + bloom_effect))
-        #应用光晕
+        #应用散射
 
         weights = None
         bloom_layer = None
@@ -668,19 +674,12 @@ with st.sidebar:
     )
 
     st.success(f"已选择胶片: {film_type}") 
-    # 文件上传器
-    uploaded_image = None
-    uploaded_image = st.file_uploader(
-    "选择一张照片来开始冲洗",
-    type=["jpg", "jpeg", "png"],
-    help="上传一张照片冲洗试试看吧"
-    )
+
 
 if uploaded_image is not None:
     (film,process_time,output_path) = process(uploaded_image,film_type,grain_style,Tone_style)
     st.image(film, width="stretch")
     st.success(f"底片显影好了，用时 {process_time:.2f}秒") 
-    
     # 添加下载按钮
     film_pil = Image.fromarray(film)
     buf = io.BytesIO()
