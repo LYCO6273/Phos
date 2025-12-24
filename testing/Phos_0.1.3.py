@@ -84,9 +84,9 @@ def film_choose(film_type):
         l_l = None #全色感光层接受的直射光
         x_l = None #全色感光层的响应系数
         n_l = 0.08 #全色感光层的颗粒度
-        gamma = 2.1
-        gam_for_log = 1.15
-        exp_for_log = 1.25
+        gamma = 2.05
+        gam_for_log = 1.10
+        exp_for_log = 1.15
         A = 0.025 #肩部强度
         B = 0.92 #线性段强度
         C = 0.10 #线性段平整度
