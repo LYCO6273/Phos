@@ -515,9 +515,6 @@ def process(uploaded_image, film_type, grain_style, custom_params=None):
     image = np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8)
     image = cv2.imdecode(image, cv2.IMREAD_COLOR)
     
-    # 关键修复：OpenCV读取为BGR，转换为RGB
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    
     uploaded_image = None
 
     # 获取胶片参数
