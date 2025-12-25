@@ -140,13 +140,13 @@ def get_custom_params():
     
     # Log映射参数
     custom_params["gam_for_log"] = st.sidebar.slider(
-        "Log曲线伽马",
+        "曲线gamma",
         min_value=0.5, max_value=2.5, value=1.05, step=0.01,
-        help="控制Log曲线的形状"
+        help="控制曲线的形状"
     )
     
     custom_params["exp_for_log"] = st.sidebar.slider(
-        "Log曝光补偿",
+        "曝光补偿",
         min_value=0.5, max_value=2.0, value=1.15, step=0.01,
         help="调整整体曝光"
     )
@@ -471,7 +471,7 @@ def opt(lux_r, lux_g, lux_b, lux_total, color_type, sens_factor,
         weighted_noise_g = None
         weighted_noise_b = None
 
-        # 应用log色调映射
+        # 应用tone mapping
         (result_r, result_g, result_b, result_total) = log_tone(
             lux_r, lux_g, lux_b, lux_total, color_type, gam_for_log, exp_for_log
         )
@@ -484,7 +484,7 @@ def opt(lux_r, lux_g, lux_b, lux_total, color_type, sens_factor,
         result_b = (result_b * 255).astype(np.uint8)
         result_g = (result_g * 255).astype(np.uint8)
         result_r = (result_r * 255).astype(np.uint8)
-        film = cv2.merge([result_r, result_g, result_b])
+        film = cv2.merge([result_b, result_g, result_r])
         result_r = None
         result_g = None
         result_b = None
