@@ -59,94 +59,70 @@ uploaded_image = st.file_uploader(
     help="上传一张照片冲洗试试看吧"
 )
 
-def film_choose(film_type, custom_params=None):
-    """获取胶片参数，支持自定义参数"""
-    # 如果提供了自定义参数，直接使用
-    if film_type == "自定义" and custom_params is not None:
-        return custom_params
-    
-    # 预设胶片参数
+def film_choose(film_type):
+    """获取胶片参数 - 修复版本，只处理预设胶片"""
     if film_type == "NC200":
-        params = {
-            "color_type": "color",
-            "r_r": 0.77, "r_g": 0.12, "r_b": 0.18,
-            "g_r": 0.08, "g_g": 0.85, "g_b": 0.23,
-            "b_r": 0.08, "b_g": 0.09, "b_b": 0.92,
-            "t_r": 0.25, "t_g": 0.35, "t_b": 0.35,
-            "sens_factor": 1.20,
-            "d_r": 1.48, "l_r": 0.95, "x_r": 1.18, "n_r": 0.18,
-            "d_g": 1.02, "l_g": 0.80, "x_g": 1.02, "n_g": 0.18,
-            "d_b": 1.02, "l_b": 0.88, "x_b": 0.78, "n_b": 0.18,
-            "d_l": None, "l_l": None, "x_l": None, "n_l": 0.08,
-            "gam_for_log": 1.10,
-            "exp_for_log": 0.95
-        }
+        return (
+            0.77, 0.12, 0.18,  # r_r, r_g, r_b
+            0.08, 0.85, 0.23,  # g_r, g_g, g_b
+            0.08, 0.09, 0.92,  # b_r, b_g, b_b
+            0.25, 0.35, 0.35,  # t_r, t_g, t_b
+            "color", 1.20,     # color_type, sens_factor
+            1.48, 0.95, 1.18, 0.18,  # d_r, l_r, x_r, n_r
+            1.02, 0.80, 1.02, 0.18,  # d_g, l_g, x_g, n_g
+            1.02, 0.88, 0.78, 0.18,  # d_b, l_b, x_b, n_b
+            None, None, None, 0.08,  # d_l, l_l, x_l, n_l
+            1.10, 0.95               # gam_for_log, exp_for_log
+        )
     elif film_type == "FS200":
-        params = {
-            "color_type": "single",
-            "r_r": 0, "r_g": 0, "r_b": 0,
-            "g_r": 0, "g_g": 0, "g_b": 0,
-            "b_r": 0, "b_g": 0, "b_b": 0,
-            "t_r": 0.15, "t_g": 0.35, "t_b": 0.45,
-            "sens_factor": 1.0,
-            "d_r": 0, "l_r": 0, "x_r": 0, "n_r": 0,
-            "d_g": 0, "l_g": 0, "x_g": 0, "n_g": 0,
-            "d_b": 0, "l_b": 0, "x_b": 0, "n_b": 0,
-            "d_l": 1.85, "l_l": 0.75, "x_l": 1.35, "n_l": 0.18,
-            "gam_for_log": 1.35,
-            "exp_for_log": 1.15
-        }
+        return (
+            0, 0, 0,            # r_r, r_g, r_b
+            0, 0, 0,            # g_r, g_g, g_b
+            0, 0, 0,            # b_r, b_g, b_b
+            0.15, 0.35, 0.45,   # t_r, t_g, t_b
+            "single", 1.0,      # color_type, sens_factor
+            0, 0, 0, 0,         # d_r, l_r, x_r, n_r
+            0, 0, 0, 0,         # d_g, l_g, x_g, n_g
+            0, 0, 0, 0,         # d_b, l_b, x_b, n_b
+            1.85, 0.75, 1.35, 0.18,  # d_l, l_l, x_l, n_l
+            1.35, 1.15               # gam_for_log, exp_for_log
+        )
     elif film_type == "AS100":
-        params = {
-            "color_type": "single",
-            "r_r": 0, "r_g": 0, "r_b": 0,
-            "g_r": 0, "g_g": 0, "g_b": 0,
-            "b_r": 0, "b_g": 0, "b_b": 0,
-            "t_r": 0.30, "t_g": 0.12, "t_b": 0.45,
-            "sens_factor": 1.28,
-            "d_r": 0, "l_r": 0, "x_r": 0, "n_r": 0,
-            "d_g": 0, "l_g": 0, "x_g": 0, "n_g": 0,
-            "d_b": 0, "l_b": 0, "x_b": 0, "n_b": 0,
-            "d_l": 1.0, "l_l": 1.05, "x_l": 1.25, "n_l": 0.10,
-            "gam_for_log": 1.05,
-            "exp_for_log": 1.15
-        }
+        return (
+            0, 0, 0,            # r_r, r_g, r_b
+            0, 0, 0,            # g_r, g_g, g_b
+            0, 0, 0,            # b_r, b_g, b_b
+            0.30, 0.12, 0.45,   # t_r, t_g, t_b
+            "single", 1.28,     # color_type, sens_factor
+            0, 0, 0, 0,         # d_r, l_r, x_r, n_r
+            0, 0, 0, 0,         # d_g, l_g, x_g, n_g
+            0, 0, 0, 0,         # d_b, l_b, x_b, n_b
+            1.0, 1.05, 1.25, 0.10,  # d_l, l_l, x_l, n_l
+            1.05, 1.15               # gam_for_log, exp_for_log
+        )
     else:
         # 默认返回AS100参数
-        params = {
-            "color_type": "single",
-            "r_r": 0, "r_g": 0, "r_b": 0,
-            "g_r": 0, "g_g": 0, "g_b": 0,
-            "b_r": 0, "b_g": 0, "b_b": 0,
-            "t_r": 0.30, "t_g": 0.12, "t_b": 0.45,
-            "sens_factor": 1.28,
-            "d_r": 0, "l_r": 0, "x_r": 0, "n_r": 0,
-            "d_g": 0, "l_g": 0, "x_g": 0, "n_g": 0,
-            "d_b": 0, "l_b": 0, "x_b": 0, "n_b": 0,
-            "d_l": 1.0, "l_l": 1.05, "x_l": 1.25, "n_l": 0.10,
-            "gam_for_log": 1.05,
-            "exp_for_log": 1.15
-        }
-    
-    # 返回所有参数，方便解包
-    return (
-        params["r_r"], params["r_g"], params["r_b"],
-        params["g_r"], params["g_g"], params["g_b"],
-        params["b_r"], params["b_g"], params["b_b"],
-        params["t_r"], params["t_g"], params["t_b"],
-        params["color_type"], params["sens_factor"],
-        params["d_r"], params["l_r"], params["x_r"], params["n_r"],
-        params["d_g"], params["l_g"], params["x_g"], params["n_g"],
-        params["d_b"], params["l_b"], params["x_b"], params["n_b"],
-        params["d_l"], params["l_l"], params["x_l"], params["n_l"],
-        params["gam_for_log"], params["exp_for_log"]
-    )
+        return (
+            0, 0, 0,            # r_r, r_g, r_b
+            0, 0, 0,            # g_r, g_g, g_b
+            0, 0, 0,            # b_r, b_g, b_b
+            0.30, 0.12, 0.45,   # t_r, t_g, t_b
+            "single", 1.28,     # color_type, sens_factor
+            0, 0, 0, 0,         # d_r, l_r, x_r, n_r
+            0, 0, 0, 0,         # d_g, l_g, x_g, n_g
+            0, 0, 0, 0,         # d_b, l_b, x_b, n_b
+            1.0, 1.05, 1.25, 0.10,  # d_l, l_l, x_l, n_l
+            1.05, 1.15               # gam_for_log, exp_for_log
+        )
 
-def get_custom_params_from_ui():
-    """从UI获取自定义参数"""
+def get_custom_params():
+    """从UI获取自定义参数 - 修复版本"""
     custom_params = {}
     
     # 第一步：选择颜色类型
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🎨 自定义胶片参数")
+    
     color_type = st.sidebar.selectbox(
         "颜色类型:",
         ["single", "color"],
@@ -155,46 +131,37 @@ def get_custom_params_from_ui():
     )
     custom_params["color_type"] = color_type
     
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("📊 基本参数")
-    
     # 高光敏感系数
-    sens_factor = st.sidebar.slider(
+    custom_params["sens_factor"] = st.sidebar.slider(
         "高光敏感系数",
         min_value=0.5, max_value=2.0, value=1.28, step=0.01,
         help="控制高光区域的敏感度"
     )
-    custom_params["sens_factor"] = sens_factor
     
     # Log映射参数
-    gam_for_log = st.sidebar.slider(
+    custom_params["gam_for_log"] = st.sidebar.slider(
         "Log曲线伽马",
         min_value=0.5, max_value=2.5, value=1.05, step=0.01,
         help="控制Log曲线的形状"
     )
-    custom_params["gam_for_log"] = gam_for_log
     
-    exp_for_log = st.sidebar.slider(
+    custom_params["exp_for_log"] = st.sidebar.slider(
         "Log曝光补偿",
         min_value=0.5, max_value=2.0, value=1.15, step=0.01,
         help="调整整体曝光"
     )
-    custom_params["exp_for_log"] = exp_for_log
-    
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("🎨 感光层吸收特性")
     
     # 全色感光层吸收特性（黑白和彩色都需要）
     custom_params["t_r"] = st.sidebar.slider(
-        "全色层吸收红光", 0.0, 1.0, 0.33, 0.01,
+        "全色层吸收红光", 0.0, 1.0, 0.30, 0.01,
         help="全色感光层对红光的吸收比例"
     )
     custom_params["t_g"] = st.sidebar.slider(
-        "全色层吸收绿光", 0.0, 1.0, 0.33, 0.01,
+        "全色层吸收绿光", 0.0, 1.0, 0.12, 0.01,
         help="全色感光层对绿光的吸收比例"
     )
     custom_params["t_b"] = st.sidebar.slider(
-        "全色层吸收蓝光", 0.0, 1.0, 0.33, 0.01,
+        "全色层吸收蓝光", 0.0, 1.0, 0.45, 0.01,
         help="全色感光层对蓝光的吸收比例"
     )
     
@@ -262,6 +229,7 @@ def get_custom_params_from_ui():
         custom_params["x_l"] = st.sidebar.slider("全色层响应系数", 0.5, 2.0, 1.25, 0.01)
         custom_params["n_l"] = st.sidebar.slider("全色层颗粒度", 0.0, 1.0, 0.10, 0.01)
     
+    # 将所有参数转换为正确的格式，以便后续使用
     return custom_params
 
 def standardize(image):
@@ -540,7 +508,7 @@ def opt(lux_r, lux_g, lux_b, lux_total, color_type, sens_factor,
     return film
 
 def process(uploaded_image, film_type, grain_style, custom_params=None):
-    """主处理函数"""
+    """主处理函数 - 修复版本"""
     start_time = time.time()
 
     # 读取上传的文件
@@ -554,18 +522,35 @@ def process(uploaded_image, film_type, grain_style, custom_params=None):
 
     # 获取胶片参数
     if film_type == "自定义" and custom_params is not None:
-        # 使用自定义参数
-        (r_r, r_g, r_b, g_r, g_g, g_b, b_r, b_g, b_b, 
-         t_r, t_g, t_b, color_type, sens_factor, 
-         d_r, l_r, x_r, n_r, d_g, l_g, x_g, n_g, 
-         d_b, l_b, x_b, n_b, d_l, l_l, x_l, n_l, 
-         gam_for_log, exp_for_log) = film_choose("自定义", custom_params)
+        # 使用自定义参数 - 直接从字典中获取
+        color_type = custom_params["color_type"]
+        sens_factor = custom_params["sens_factor"]
+        gam_for_log = custom_params["gam_for_log"]
+        exp_for_log = custom_params["exp_for_log"]
+        
+        # 吸收特性
+        r_r, r_g, r_b = custom_params["r_r"], custom_params["r_g"], custom_params["r_b"]
+        g_r, g_g, g_b = custom_params["g_r"], custom_params["g_g"], custom_params["g_b"]
+        b_r, b_g, b_b = custom_params["b_r"], custom_params["b_g"], custom_params["b_b"]
+        t_r, t_g, t_b = custom_params["t_r"], custom_params["t_g"], custom_params["t_b"]
+        
+        # 光学响应参数
+        d_r, l_r, x_r, n_r = custom_params["d_r"], custom_params["l_r"], custom_params["x_r"], custom_params["n_r"]
+        d_g, l_g, x_g, n_g = custom_params["d_g"], custom_params["l_g"], custom_params["x_g"], custom_params["n_g"]
+        d_b, l_b, x_b, n_b = custom_params["d_b"], custom_params["l_b"], custom_params["x_b"], custom_params["n_b"]
+        d_l, l_l, x_l, n_l = custom_params["d_l"], custom_params["l_l"], custom_params["x_l"], custom_params["n_l"]
+        
     else:
         # 使用预设参数
-        (r_r, r_g, r_b, g_r, g_g, g_b, b_r, b_g, b_b, 
-         t_r, t_g, t_b, color_type, sens_factor, 
-         d_r, l_r, x_r, n_r, d_g, l_g, x_g, n_g, 
-         d_b, l_b, x_b, n_b, d_l, l_l, x_l, n_l, 
+        (r_r, r_g, r_b, 
+         g_r, g_g, g_b, 
+         b_r, b_g, b_b, 
+         t_r, t_g, t_b, 
+         color_type, sens_factor, 
+         d_r, l_r, x_r, n_r, 
+         d_g, l_g, x_g, n_g, 
+         d_b, l_b, x_b, n_b, 
+         d_l, l_l, x_l, n_l, 
          gam_for_log, exp_for_log) = film_choose(film_type)
     
     # 调整颗粒度
@@ -645,7 +630,7 @@ with st.sidebar:
     # 如果选择自定义，获取自定义参数
     custom_params = None
     if film_type == "自定义":
-        custom_params = get_custom_params_from_ui()
+        custom_params = get_custom_params()
     
     # 胶片颗粒度选择
     grain_style = st.selectbox(
