@@ -184,9 +184,15 @@ def get_custom_params():
         custom_params["b_b"] = st.sidebar.slider("蓝层吸收蓝光", 0.0, 1.0, 0.92, 0.01)
     else:
         # 黑白胶片，彩色层参数设为0
-        custom_params["r_r"] = custom_params["r_g"] = custom_params["r_b"] = 0
-        custom_params["g_r"] = custom_params["g_g"] = custom_params["g_b"] = 0
-        custom_params["b_r"] = custom_params["b_g"] = custom_params["b_b"] = 0
+        custom_params["r_r"] = 0.0
+        custom_params["r_g"] = 0.0
+        custom_params["r_b"] = 0.0
+        custom_params["g_r"] = 0.0
+        custom_params["g_g"] = 0.0
+        custom_params["g_b"] = 0.0
+        custom_params["b_r"] = 0.0
+        custom_params["b_g"] = 0.0
+        custom_params["b_b"] = 0.0
     
     st.sidebar.markdown("---")
     st.sidebar.subheader("💡 光学响应参数")
@@ -218,9 +224,18 @@ def get_custom_params():
         custom_params["n_l"] = 0.08  # 基础颗粒度
     else:
         # 黑白胶片的彩色层参数设为0
-        custom_params["d_r"] = custom_params["l_r"] = custom_params["x_r"] = custom_params["n_r"] = 0
-        custom_params["d_g"] = custom_params["l_g"] = custom_params["x_g"] = custom_params["n_g"] = 0
-        custom_params["d_b"] = custom_params["l_b"] = custom_params["x_b"] = custom_params["n_b"] = 0
+        custom_params["d_r"] = 0.0
+        custom_params["l_r"] = 0.0
+        custom_params["x_r"] = 0.0
+        custom_params["n_r"] = 0.0
+        custom_params["d_g"] = 0.0
+        custom_params["l_g"] = 0.0
+        custom_params["x_g"] = 0.0
+        custom_params["n_g"] = 0.0
+        custom_params["d_b"] = 0.0
+        custom_params["l_b"] = 0.0
+        custom_params["x_b"] = 0.0
+        custom_params["n_b"] = 0.0
         
         # 黑白胶片的光学响应（全色层）
         st.sidebar.markdown("#### 全色感光层")
@@ -229,7 +244,6 @@ def get_custom_params():
         custom_params["x_l"] = st.sidebar.slider("全色层响应系数", 0.5, 2.0, 1.25, 0.01)
         custom_params["n_l"] = st.sidebar.slider("全色层颗粒度", 0.0, 1.0, 0.10, 0.01)
     
-    # 将所有参数转换为正确的格式，以便后续使用
     return custom_params
 
 def standardize(image):
@@ -507,7 +521,7 @@ def opt(lux_r, lux_g, lux_b, lux_total, color_type, sens_factor,
 
     return film
 
-def process(uploaded_image, film_type, grain_style, custom_params):
+def process(uploaded_image, film_type, grain_style, custom_params=None):
     """主处理函数 - 修复版本"""
     start_time = time.time()
 
@@ -515,27 +529,53 @@ def process(uploaded_image, film_type, grain_style, custom_params):
     image = np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8)
     image = cv2.imdecode(image, cv2.IMREAD_COLOR)
     
+    # 关键修复：OpenCV读取为BGR，转换为RGB
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
     uploaded_image = None
 
     # 获取胶片参数
     if film_type == "自定义" and custom_params is not None:
         # 使用自定义参数 - 直接从字典中获取
         color_type = custom_params["color_type"]
-        sens_factor = custom_params["sens_factor"]
-        gam_for_log = custom_params["gam_for_log"]
-        exp_for_log = custom_params["exp_for_log"]
+        sens_factor = float(custom_params["sens_factor"])
+        gam_for_log = float(custom_params["gam_for_log"])
+        exp_for_log = float(custom_params["exp_for_log"])
         
         # 吸收特性
-        r_r, r_g, r_b = custom_params["r_r"], custom_params["r_g"], custom_params["r_b"]
-        g_r, g_g, g_b = custom_params["g_r"], custom_params["g_g"], custom_params["g_b"]
-        b_r, b_g, b_b = custom_params["b_r"], custom_params["b_g"], custom_params["b_b"]
-        t_r, t_g, t_b = custom_params["t_r"], custom_params["t_g"], custom_params["t_b"]
+        r_r = float(custom_params["r_r"])
+        r_g = float(custom_params["r_g"])
+        r_b = float(custom_params["r_b"])
+        g_r = float(custom_params["g_r"])
+        g_g = float(custom_params["g_g"])
+        g_b = float(custom_params["g_b"])
+        b_r = float(custom_params["b_r"])
+        b_g = float(custom_params["b_g"])
+        b_b = float(custom_params["b_b"])
+        t_r = float(custom_params["t_r"])
+        t_g = float(custom_params["t_g"])
+        t_b = float(custom_params["t_b"])
         
-        # 光学响应参数
-        d_r, l_r, x_r, n_r = custom_params["d_r"], custom_params["l_r"], custom_params["x_r"], custom_params["n_r"]
-        d_g, l_g, x_g, n_g = custom_params["d_g"], custom_params["l_g"], custom_params["x_g"], custom_params["n_g"]
-        d_b, l_b, x_b, n_b = custom_params["d_b"], custom_params["l_b"], custom_params["x_b"], custom_params["n_b"]
-        d_l, l_l, x_l, n_l = custom_params["d_l"], custom_params["l_l"], custom_params["x_l"], custom_params["n_l"]
+        # 光学响应参数 - 确保所有参数都是浮点数
+        d_r = float(custom_params["d_r"]) if custom_params["d_r"] is not None else 0.0
+        l_r = float(custom_params["l_r"]) if custom_params["l_r"] is not None else 0.0
+        x_r = float(custom_params["x_r"]) if custom_params["x_r"] is not None else 0.0
+        n_r = float(custom_params["n_r"]) if custom_params["n_r"] is not None else 0.0
+        
+        d_g = float(custom_params["d_g"]) if custom_params["d_g"] is not None else 0.0
+        l_g = float(custom_params["l_g"]) if custom_params["l_g"] is not None else 0.0
+        x_g = float(custom_params["x_g"]) if custom_params["x_g"] is not None else 0.0
+        n_g = float(custom_params["n_g"]) if custom_params["n_g"] is not None else 0.0
+        
+        d_b = float(custom_params["d_b"]) if custom_params["d_b"] is not None else 0.0
+        l_b = float(custom_params["l_b"]) if custom_params["l_b"] is not None else 0.0
+        x_b = float(custom_params["x_b"]) if custom_params["x_b"] is not None else 0.0
+        n_b = float(custom_params["n_b"]) if custom_params["n_b"] is not None else 0.0
+        
+        d_l = float(custom_params["d_l"]) if custom_params["d_l"] is not None else 0.0
+        l_l = float(custom_params["l_l"]) if custom_params["l_l"] is not None else 0.0
+        x_l = float(custom_params["x_l"]) if custom_params["x_l"] is not None else 0.0
+        n_l = float(custom_params["n_l"]) if custom_params["n_l"] is not None else 0.0
         
     else:
         # 使用预设参数
@@ -550,27 +590,32 @@ def process(uploaded_image, film_type, grain_style, custom_params):
          d_l, l_l, x_l, n_l, 
          gam_for_log, exp_for_log) = film_choose(film_type)
     
-    # 调整颗粒度
+    # 调整颗粒度 - 安全处理None值
+    def safe_multiply(param, factor):
+        if param is None:
+            return None
+        return param * factor
+    
     if grain_style == "默认":
-        n_r = n_r * 1.0
-        n_g = n_g * 1.0
-        n_b = n_b * 1.0
-        n_l = n_l * 1.0
+        n_r = safe_multiply(n_r, 1.0)
+        n_g = safe_multiply(n_g, 1.0)
+        n_b = safe_multiply(n_b, 1.0)
+        n_l = safe_multiply(n_l, 1.0)
     elif grain_style == "柔和":
-        n_r = n_r * 0.5
-        n_g = n_g * 0.5
-        n_b = n_b * 0.5
-        n_l = n_l * 0.5
+        n_r = safe_multiply(n_r, 0.5)
+        n_g = safe_multiply(n_g, 0.5)
+        n_b = safe_multiply(n_b, 0.5)
+        n_l = safe_multiply(n_l, 0.5)
     elif grain_style == "较粗":
-        n_r = n_r * 1.5
-        n_g = n_g * 1.5
-        n_b = n_b * 1.5
-        n_l = n_l * 1.5
+        n_r = safe_multiply(n_r, 1.5)
+        n_g = safe_multiply(n_g, 1.5)
+        n_b = safe_multiply(n_b, 1.5)
+        n_l = safe_multiply(n_l, 1.5)
     elif grain_style == "不使用":
-        n_r = n_r * 0
-        n_g = n_g * 0
-        n_b = n_b * 0
-        n_l = n_l * 0
+        n_r = safe_multiply(n_r, 0)
+        n_g = safe_multiply(n_g, 0)
+        n_b = safe_multiply(n_b, 0)
+        n_l = safe_multiply(n_l, 0)
 
     # 调整尺寸
     image = standardize(image)
@@ -608,7 +653,7 @@ with st.sidebar:
     film_type = st.selectbox(
         "胶片模拟配方:",
         ["NC200", "AS100", "FS200", "自定义"],
-        index=2,  # 默认选择FS200，因为黑白比较好调
+        index=0,
         help='''选择胶片模拟配方:
 
         NC200: 灵感来自富士C200彩色负片和扫描仪SP3000，
@@ -674,6 +719,8 @@ if uploaded_image is not None:
         
     except Exception as e:
         st.error(f"处理图像时出现错误: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
         st.info("请尝试调整参数或更换图像")
     
     uploaded_image = None
