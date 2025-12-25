@@ -28,7 +28,7 @@ email at lyco_p@163.com. I would be very grateful.
 ——————————————————————————————————————————————————————
 
 在0.1.3版本中，简化了算法，移除了Filmic和Reinhard映射，
-专注于Log映射，并添加了自定义胶片参数功能。
+引入基于对数的映射，并添加了自定义胶片参数功能。
 
 In the update of version 0.1.3, we simplified the algorithms,
 removed Filmic and Reinhard mapping, focusing on Log mapping,
@@ -528,9 +528,6 @@ def process(uploaded_image, film_type, grain_style, custom_params=None):
     # 读取上传的文件
     image = np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8)
     image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-    
-    # 关键修复：OpenCV读取为BGR，转换为RGB
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     
     uploaded_image = None
 
