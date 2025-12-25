@@ -27,7 +27,7 @@ email at lyco_p@163.com. I would be very grateful.
 
 ——————————————————————————————————————————————————————
 
-在0.1.3版本中，简化了算法，移除了Filmic和Reinhard映射，
+在0.1.4版本中，简化了算法，移除了Filmic和Reinhard映射，
 引入基于对数的映射，并添加了自定义胶片参数功能。
 
 In the update of version 0.1.3, we simplified the algorithms,
