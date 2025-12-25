@@ -147,7 +147,7 @@ def get_custom_params():
     
     custom_params["exp_for_log"] = st.sidebar.slider(
         "曝光补偿",
-        min_value=0.5, max_value=2.0, value=1.15, step=0.01,
+        min_value=0.5, max_value=2.0, value=1.00, step=0.01,
         help="调整整体曝光"
     )
     
@@ -484,7 +484,7 @@ def opt(lux_r, lux_g, lux_b, lux_total, color_type, sens_factor,
         result_b = (result_b * 255).astype(np.uint8)
         result_g = (result_g * 255).astype(np.uint8)
         result_r = (result_r * 255).astype(np.uint8)
-        film = cv2.merge([result_b, result_g, result_r])
+        film = cv2.merge([result_r, result_g, result_b])
         result_r = None
         result_g = None
         result_b = None
