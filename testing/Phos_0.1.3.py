@@ -507,7 +507,7 @@ def opt(lux_r, lux_g, lux_b, lux_total, color_type, sens_factor,
 
     return film
 
-def process(uploaded_image, film_type, grain_style, custom_params=None):
+def process(uploaded_image, film_type, grain_style, custom_params):
     """主处理函数 - 修复版本"""
     start_time = time.time()
 
