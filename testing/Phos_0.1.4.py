@@ -642,7 +642,7 @@ with st.sidebar:
     st.subheader("基于计算光学的胶片模拟")
     st.text("")
     st.text("原理验证demo")
-    st.text("ver_0.1.3")
+    st.text("ver_0.1.4")
     st.text("")
     st.text("🎞️ 胶片设置")
     
