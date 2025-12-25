@@ -638,7 +638,7 @@ def process(uploaded_image, film_type, grain_style, custom_params=None):
 
 # 创建侧边栏
 with st.sidebar:
-    st.header("Phos. 胶片模拟")
+    st.header("Phos.")
     st.subheader("基于计算光学的胶片模拟")
     st.text("")
     st.text("原理验证demo")
