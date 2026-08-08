@@ -1,0 +1,9 @@
+numpy==2.2.6
+opencv-python-headless==4.12.0.88
+streamlit==1.51.0
+pillow==12.0.0
+rawpy
+# tornado 6.5.x has a known regression: st.file_uploader fails with
+# "AxiosError: Request failed with status code 400" on local uploads.
+# 6.4.1 is the version confirmed to work with Streamlit 1.51.
+tornado==6.4.1
