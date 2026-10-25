@@ -2,6 +2,11 @@
 
 # 综述General
 
+  “我们运算光谱、彩虹、沙砾和星辰“
+  
+  "Not LUTs, we calculate LUX."
+  
+
   你说的对，但是 Phos. 是基于「计算光学」概念的胶片模拟。通过计算光在底片上的行为，复现自然、柔美、立体的胶片质感。
   
   Hello! Phos. is a film simulation app based on the idea of "Computational optical imaging“. By calculating the optical effects on the film,we could recurrent the natural, soft, and elegant tone of these classical films.
@@ -10,10 +15,14 @@
   
   This is a demo for idea testing. The image processing part is based on OpenCV, and the interaction is built on the Streamlit platform. Some of the code was generated with the assistance of AI.
 
-  如果您发现了项目中的问题，或是有更好的想法想要分享，还请通过邮箱 lyco_p@163.com 与我联系，我将不胜感激。
+  如果您发现了项目中的问题，或是有更好的想法想要分享，还请通过邮箱 Shiro_Sia@outlook.com 与我联系，我将不胜感激。
   
   If you find any issues in the project or have better ideas you would like to share, please contact me via email at lyco_p@163.com. I would be very grateful.
 
+  本仓库中的内容是Phos的早期原理验证demo，展示了Phos的设计思路和开发过程，希望会对您有所启发；后续内容已经转向iOS/swift平台开发，欢迎前往 phoscam.app 体验我们的的相机应用Phos Cam。
+  
+  Those content in this repository is the early idea testing demo of Phos, which shows the design ideas and development process of Phos. I hope it will inspire you. The follow-up content has been developed on the iOS/swift platform. Welcome to phoscam.app to experience our camera App, Phos Cam.
+  
 # 依赖Requirments
 
 本项目基于Python 3.13编写
@@ -87,6 +96,5 @@ developed by @LYCO6273
 
 https://github.com/LYCO6273/Phos
 
-联系方式：lyco_p@163.com
-
-contact at: lyco_p@163.com
+联系方式：Shiro_Sia@outlook.com
+contact at: Shiro_Sia@outlook.com
