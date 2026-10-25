@@ -17,7 +17,7 @@
 
   如果您发现了项目中的问题，或是有更好的想法想要分享，还请通过邮箱 Shiro_Sia@outlook.com 与我联系，我将不胜感激。
   
-  If you find any issues in the project or have better ideas you would like to share, please contact me via email at lyco_p@163.com. I would be very grateful.
+  If you find any issues in the project or have better ideas you would like to share, please contact me via email via Shiro_Sia@outlook.com . I would be very grateful.
 
   本仓库中的内容是Phos的早期原理验证demo，展示了Phos的设计思路和开发过程，希望会对您有所启发；后续内容已经转向iOS/swift平台开发，欢迎前往 phoscam.app 体验我们的的相机应用Phos Cam。
   
